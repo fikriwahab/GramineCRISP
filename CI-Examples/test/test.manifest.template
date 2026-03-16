@@ -1,0 +1,16 @@
+libos.entrypoint = "/test"
+loader.log_level = "error"
+
+loader.env.LD_LIBRARY_PATH = "/lib"
+
+fs.mounts = [
+  { path = "/lib", uri = "file:{{ gramine.runtimedir() }}" },
+  { path = "/test", uri = "file:test" },
+]
+
+sgx.debug = true
+sgx.enclave_size = "256M"
+sgx.trusted_files = [
+  "file:test",
+  "file:{{ gramine.runtimedir() }}/",
+]
