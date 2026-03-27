@@ -1,0 +1,27 @@
+vault file: metadata file
+Misal suatu aplikasi buka 3 file, masing-masing akan di enkripsi hash, informasi ini ada di dalam vault file tersebut (bisa ratusan filenya, tapi vault cuma 1), dia akan kasih info data/skema tentang file yang sudah dihash dan enkripsi ini
+
+enclave: memori ada ketika suatu aplikasi running (bukan file), jadi aman dari intervensi luar
+
+vault tidak wajib kalau kita mau ngoprek protected file, ditaro di metadata emg memberikan fleksibilitas (untuk future work), kalau ribet ga masalah digabung jadi satu. embed mono counter disitu ga masalah
+
+Pseudocode syscall:
+int main(){
+    printf("hai hai fasilkom");
+    
+    int fd =fopen("a.txt", w);
+    fwrite(buf, len(buf), ?, fd);
+    fsync(fd)
+    close(fd)
+}
+
+terminal output example:
+> gcc main.c -o main.exe
+> gramine-direct main.exe
+haihai fasilkom
+<fsync called>
+
+Tasks:
+1. Baca paper dan presentasi
+2. Mapping fitur PF dan CRISP. Hash, encrypt seperti apa, key gimana, freshness gimana, integrity gimana
+3. Intercept syscall fsync, sync, close, write.

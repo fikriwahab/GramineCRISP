@@ -170,6 +170,8 @@ long libos_syscall_close(int fd) {
     if (!handle)
         return -EBADF;
 
+    log_always(">>> INTERCEPT: close(fd=%d) dipanggil!", fd);
+
     put_handle(handle);
     return 0;
 }
@@ -497,6 +499,8 @@ long libos_syscall_fsync(int fd) {
     struct libos_handle* hdl = get_fd_handle(fd, NULL, NULL);
     if (!hdl)
         return -EBADF;
+
+    log_always(">>> INTERCEPT: fsync(fd=%d) dipanggil!", fd);
 
     int ret;
     struct libos_fs* fs = hdl->fs;

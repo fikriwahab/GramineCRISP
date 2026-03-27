@@ -1,0 +1,30 @@
+libos.entrypoint = "/main"
+loader.log_level = "error"
+
+loader.env.LD_LIBRARY_PATH = "/lib"
+
+# Encryption key untuk Protected Files (HANYA untuk demo/development!)
+fs.insecure__keys.default = "ffeeddccbbaa99887766554433221100"
+
+fs.mounts = [
+  { path = "/lib", uri = "file:{{ gramine.runtimedir() }}" },
+  { path = "/main", uri = "file:main" },
+
+  # Mount ENCRYPTED — file di encrypted_dir/ akan dienkripsi otomatis
+  { type = "encrypted", path = "/encrypted", uri = "file:encrypted_dir" },
+
+  # Mount BIASA — file di plain_dir/ TIDAK dienkripsi
+  { path = "/plain", uri = "file:plain_dir" },
+]
+
+sgx.debug = true
+sgx.enclave_size = "256M"
+
+sgx.trusted_files = [
+  "file:main",
+  "file:{{ gramine.runtimedir() }}/",
+]
+
+sgx.allowed_files = [
+  "file:plain_dir/",
+]
