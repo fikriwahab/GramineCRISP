@@ -1,1 +1,1 @@
-INI DATA BIASA: hello world
+xxxINI DATA BIASA: hello world

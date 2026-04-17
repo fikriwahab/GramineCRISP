@@ -527,6 +527,61 @@ noreturn void libos_init(const char* const* argv, const char* const* envp) {
 
     log_debug("LibOS initialized");
 
+    // crisp
+    #include "crisp/crisp.h"
+
+    // ----- Simulated MC -----
+    // Run with any app (e.g. CI-Examples/intercept).
+    // Manifest doesn't need encrypted mount.
+    {
+        snprintf(g_crisp.mc_path, sizeof(g_crisp.mc_path), "/tmp/crisp_mc.dat");
+        g_crisp.mc_latency_ms = 0;  // skip sleep — mc_wakeup_event not yet created
+        log_always("=== Sim MC test ===");
+        if (crisp_mc_init() == 0) {
+            uint64_t v;
+            crisp_mc_read(&v);       log_always("after init: v=%lu", v);
+            crisp_mc_increment(&v);  log_always("after inc1: v=%lu", v);
+            crisp_mc_increment(&v);  log_always("after inc2: v=%lu", v);
+            crisp_mc_increment(&v);  log_always("after inc3: v=%lu", v);
+        }
+        log_always("=== Sim MC done ===");
+    }
+    
+
+    // ----- Vault save/load -----
+    // Run with CI-Examples/crisp-vault-test (manifest has encrypted /crisp mount).
+    /*
+    {
+        snprintf(g_crisp.vault_path, sizeof(g_crisp.vault_path), "/crisp/vault.dat");
+        log_always("=== Vault test ===");
+
+        uint8_t tag[CRISP_TAG_SIZE];
+        for (int i = 0; i < CRISP_TAG_SIZE; i++) tag[i] = (uint8_t)(0xA0 + i);
+
+        crisp_vault_t v0 = {0};
+        int r0 = crisp_vault_load(&v0);
+        log_always("load1 (expect -2 if fresh, 0 if persisted): %d", r0);
+
+        int rs = crisp_vault_save(tag, 42);
+        log_always("save (L=42): %d", rs);
+
+        crisp_vault_t v1 = {0};
+        int r1 = crisp_vault_load(&v1);
+        log_always("load2 (expect 0): %d, L=%lu, tag[0]=%02x tag[31]=%02x",
+                   r1, v1.local_mc, v1.tag[0], v1.tag[31]);
+
+        int rs2 = crisp_vault_save(tag, 99);
+        log_always("save (L=99): %d", rs2);
+
+        crisp_vault_t v2 = {0};
+        int r2 = crisp_vault_load(&v2);
+        log_always("load3 (expect 0): %d, L=%lu", r2, v2.local_mc);
+
+        log_always("=== Vault test done ===");
+    }
+    */
+    // ============================================================
+
     libos_tcb_t* cur_tcb = libos_get_tcb();
 
     if (cur_tcb->context.regs) {
