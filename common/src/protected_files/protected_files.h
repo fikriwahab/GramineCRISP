@@ -308,3 +308,6 @@ pf_status_t pf_rename(pf_context_t* pf, const char* new_path);
  * \returns PF status.
  */
 pf_status_t pf_flush(pf_context_t* pf);
+
+/* CRISP: extract metadata MAC (the per-file AES-GCM tag over all contents). */
+pf_status_t pf_get_metadata_mac(pf_context_t* pf, uint8_t* mac_out);

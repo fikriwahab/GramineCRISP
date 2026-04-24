@@ -1485,3 +1485,10 @@ pf_status_t pf_flush(pf_context_t* pf) {
 
     return PF_STATUS_SUCCESS;
 }
+
+pf_status_t pf_get_metadata_mac(pf_context_t* pf, uint8_t* mac_out) {
+    if (!pf || !mac_out)
+        return PF_STATUS_INVALID_PARAMETER;
+    memcpy(mac_out, &pf->metadata_node.plaintext_part.metadata_mac, PF_MAC_SIZE);
+    return PF_STATUS_SUCCESS;
+}
