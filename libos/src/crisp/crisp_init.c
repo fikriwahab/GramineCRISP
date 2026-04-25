@@ -6,9 +6,10 @@
 
 crisp_state_t g_crisp = {0};
 
-// TODO Session 5: implement halt + wake waiters before exit.
 noreturn void crisp_fail_stop(const char* reason) {
-    log_always("crisp_fail_stop: %s", reason);
+    __atomic_store_n(&g_crisp.halted, true, __ATOMIC_RELEASE);
+    log_error("CRISP FAIL-STOP: %s", reason);
+    crisp_wake_all_waiters();
     PalProcessExit(1);
     __builtin_unreachable();
 }

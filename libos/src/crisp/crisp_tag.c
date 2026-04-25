@@ -42,7 +42,12 @@ done:
 int crisp_compute_global_tag(uint8_t* tag_out) {
     LIB_SHA256_CONTEXT ctx;
     lib_SHA256Init(&ctx);
-
+    // TODO: tidak ada lock, ada kemungkinan di tengah2 count, dan kalau tiba2 tambahan file baru, jadi gimana handlenya.
+    // Ketika ada write request, maka impement lock dan waiter (e.g. mutex)
+    // SOLUTION: 
+    // Scenario or assumption is that fsync/write onto one of the PF in the middle of the loop, MAC will change when read
+    // So we can use global mutex. Writer take lock when it is about to flush, and  compute_tag take lock when iterate
+    // Implement soon when we have the write hook and fsync hook.
     for (int i = 0; i < g_crisp.pf_count; i++) {
         uint8_t mac[PF_MAC_SIZE];
         if (extract_pf_mac(g_crisp.pf_paths[i], mac) < 0) {
