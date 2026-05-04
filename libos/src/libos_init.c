@@ -534,27 +534,25 @@ noreturn void libos_init(const char* const* argv, const char* const* envp) {
     // Run with any app (e.g. CI-Examples/intercept).
     // Manifest doesn't need encrypted mount.
     // {
-    // //     snprintf(g_crisp.mc_path, sizeof(g_crisp.mc_path), "/tmp/crisp_mc.dat");
-    // //     g_crisp.mc_latency_ms = 0;  // skip sleep, mc_wakeup_event not yet created
-    // //     log_always("Sim MC test start");
-    // //     if (crisp_mc_init() == 0) {
-    // //         uint64_t v;
-    // //         crisp_mc_read(&v);       log_always("after init: v=%lu", v);
-    // //         crisp_mc_increment(&v);  log_always("after inc1: v=%lu", v);
-    // //         crisp_mc_increment(&v);  log_always("after inc2: v=%lu", v);
-    // //         crisp_mc_increment(&v);  log_always("after inc3: v=%lu", v);
-    // //     }
-    // //     log_always("Sim MC test done");
+    //     snprintf(g_crisp.mc_path, sizeof(g_crisp.mc_path), "/tmp/crisp_mc.dat");
+    //     g_crisp.mc_latency_ms = 0;  // skip sleep, mc_wakeup_event not yet created
+    //     log_always("Sim MC test start");
+    //     if (crisp_mc_init() == 0) {
+    //         uint64_t v;
+    //         crisp_mc_read(&v);       log_always("after init: v=%lu", v);
+    //         crisp_mc_increment(&v);  log_always("after inc1: v=%lu", v);
+    //         crisp_mc_increment(&v);  log_always("after inc2: v=%lu", v);
+    //         crisp_mc_increment(&v);  log_always("after inc3: v=%lu", v);
+    //     }
+    //     log_always("Sim MC test done");
     // }
 
     // Fail-stop test harness.
     // Run with any app. Expect exit code 1 and CRISP FAIL-STOP log line.
-    /*
-    {
-        log_always("Fail-stop test: halted before = %d", g_crisp.halted);
-        crisp_fail_stop("test trigger from harness");
-    }
-    */
+    // {
+    //     log_always("Fail-stop test: halted before = %d", g_crisp.halted);
+    //     crisp_fail_stop("test trigger from harness");
+    // }
 
 
     // Vault save/load test harness.
@@ -592,35 +590,35 @@ noreturn void libos_init(const char* const* argv, const char* const* envp) {
     // Tag computation test harness.
     // Run with CI-Examples/crisp-tag-test (app creates PF files on first run).
     
-    {
-        // make sure bahwa dia take path accountable, jangan ngikutin date nya 
-        // makesure di aes gcm noncenya dibikin sama semuanya aja (sistem-level nonce)   
-        static char* test_paths[] = {"/crisp/a.dat", "/crisp/b.dat"};
-        g_crisp.pf_paths = test_paths;
-        g_crisp.pf_count = 2;
+    // {
+    //     // make sure bahwa dia take path accountable, jangan ngikutin date nya 
+    //     // makesure di aes gcm noncenya dibikin sama semuanya aja (sistem-level nonce)   
+    //     static char* test_paths[] = {"/crisp/a.dat", "/crisp/b.dat"};
+    //     g_crisp.pf_paths = test_paths;
+    //     g_crisp.pf_count = 2;
 
-        log_always("Tag test start");
-        uint8_t tag[CRISP_TAG_SIZE];
-        char hex[CRISP_TAG_SIZE * 2 + 1];
+    //     log_always("Tag test start");
+    //     uint8_t tag[CRISP_TAG_SIZE];
+    //     char hex[CRISP_TAG_SIZE * 2 + 1];
 
-        int r = crisp_compute_global_tag(tag);
-        bytes2hex(tag, CRISP_TAG_SIZE, hex, sizeof(hex));
-        log_always("tag_boot:    ret=%d hex=%s", r, hex);
+    //     int r = crisp_compute_global_tag(tag);
+    //     bytes2hex(tag, CRISP_TAG_SIZE, hex, sizeof(hex));
+    //     log_always("tag_boot:    ret=%d hex=%s", r, hex);
 
-        int rf = crisp_flush_pf_by_path("/crisp/a.dat");
-        log_always("flush a.dat: ret=%d", rf);
-        rf = crisp_flush_pf_by_path("/crisp/b.dat");
-        log_always("flush b.dat: ret=%d", rf);
+    //     int rf = crisp_flush_pf_by_path("/crisp/a.dat");
+    //     log_always("flush a.dat: ret=%d", rf);
+    //     rf = crisp_flush_pf_by_path("/crisp/b.dat");
+    //     log_always("flush b.dat: ret=%d", rf);
 
-        uint8_t tag2[CRISP_TAG_SIZE];
-        crisp_compute_global_tag(tag2);
-        bytes2hex(tag2, CRISP_TAG_SIZE, hex, sizeof(hex));
-        log_always("tag_after:   hex=%s", hex);
-        int same = memcmp(tag, tag2, CRISP_TAG_SIZE) == 0;
-        log_always("same_in_run: %s", same ? "YES" : "NO");
+    //     uint8_t tag2[CRISP_TAG_SIZE];
+    //     crisp_compute_global_tag(tag2);
+    //     bytes2hex(tag2, CRISP_TAG_SIZE, hex, sizeof(hex));
+    //     log_always("tag_after:   hex=%s", hex);
+    //     int same = memcmp(tag, tag2, CRISP_TAG_SIZE) == 0;
+    //     log_always("same_in_run: %s", same ? "YES" : "NO");
 
-        log_always("Tag test done");
-    }
+    //     log_always("Tag test done");
+    // }
     
 
     libos_tcb_t* cur_tcb = libos_get_tcb();
