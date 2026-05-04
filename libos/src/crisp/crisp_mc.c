@@ -72,6 +72,10 @@ int crisp_mc_init(void) {
 }
 
 int crisp_mc_read(uint64_t* value) {
+    if (!mc_mu_initialized) {
+        *value = 0;
+        return 0;
+    }
     lock(&mc_mu);
     *value = mc_value;
     unlock(&mc_mu);

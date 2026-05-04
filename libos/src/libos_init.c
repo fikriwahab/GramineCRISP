@@ -619,7 +619,64 @@ noreturn void libos_init(const char* const* argv, const char* const* envp) {
 
     //     log_always("Tag test done");
     // }
-    
+
+    // Fsync hook test harness.
+    // Test 1: hook enqueues. Test 2: drain returns when queue empty. Test 3: drain on halted
+    {
+        log_always("Fsync hook test start");
+        if (crisp_init_sync() < 0) {
+            log_error("crisp_init_sync failed");
+        } else {
+            log_always("init: queue_mu=%d mu=%d evt=%p",
+                       lock_created(&g_crisp.queue_mu),
+                       lock_created(&g_crisp.mu),
+                       g_crisp.mc_wakeup_event);
+
+            int before = g_crisp.pending_count;
+            int r1 = crisp_on_fsync();
+            int after = g_crisp.pending_count;
+            log_always("1. enqueue: ret=%d, pending %d->%d", r1, before, after);
+
+            g_crisp.pending_count = 0;
+            g_crisp.queue_has_work = false;
+            g_crisp.batch_in_flight = false;
+            g_crisp.L = 0;
+            int r2 = crisp_drain_and_wait();
+            log_always("2. drain (empty queue): ret=%d", r2);
+
+            __atomic_store_n(&g_crisp.halted, true, __ATOMIC_RELEASE);
+            int r3 = crisp_drain_and_wait();
+            log_always("3. drain (halted): ret=%d", r3);
+            __atomic_store_n(&g_crisp.halted, false, __ATOMIC_RELEASE);
+
+            crisp_wake_all_waiters();
+            log_always("4. wake_all_waiters (no waiters): ok");
+
+            int r5 = crisp_on_fsync();
+            __atomic_store_n(&g_crisp.halted, true, __ATOMIC_RELEASE);
+            int r6 = crisp_on_fsync();
+            log_always("5. fsync (normal then halted): ret=%d %d", r5, r6);
+            __atomic_store_n(&g_crisp.halted, false, __ATOMIC_RELEASE);
+
+            g_crisp.pending_count = 0;
+            crisp_on_fsync();
+            crisp_on_fsync();
+            crisp_on_fsync();
+            log_always("6. 3x enqueue: pending=%d (expect 3)", g_crisp.pending_count);
+
+            g_crisp.pending_count = 0;
+            __atomic_store_n(&g_crisp.halted, true, __ATOMIC_RELEASE);
+            int r7a = crisp_on_fsync();
+            int r7b = crisp_on_fsync();
+            log_always("7. halted blocks enqueue: ret=%d %d, pending=%d (expect 0)",
+                       r7a, r7b, g_crisp.pending_count);
+            __atomic_store_n(&g_crisp.halted, false, __ATOMIC_RELEASE);
+
+            g_crisp.pending_count = 0;
+
+            log_always("Fsync hook test done");
+        }
+    }
 
     libos_tcb_t* cur_tcb = libos_get_tcb();
 

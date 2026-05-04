@@ -78,6 +78,7 @@ extern bool g_in_crisp_io;
 noreturn void crisp_fail_stop(const char* reason);
 
 int  crisp_init(const char* vault_path, const char* mc_path);
+int  crisp_init_sync(void);
 int  crisp_on_fsync(void);
 int  crisp_on_close(void);
 void crisp_on_exit(void);

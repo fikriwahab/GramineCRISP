@@ -4,13 +4,13 @@
 #include "libos_internal.h"
 #include "crisp.h"
 
-// TODO Session 8: enqueue + drain.
+// TODO close hook: enqueue + drain.
 int crisp_on_close(void) {
     log_always("crisp_on_close");
     return 0;
 }
 
-// TODO Session 8: flush all tracked PFs, then enqueue + drain.
+// TODO exit hook: flush all tracked PFs, then enqueue + drain.
 void crisp_on_exit(void) {
     log_always("crisp_on_exit");
 }
