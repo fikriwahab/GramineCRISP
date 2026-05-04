@@ -5,7 +5,7 @@
 #include "libos_internal.h"
 #include "crisp.h"
 
-// TODO Session 10: listen on checker_api_port; per-connection: drain, return MC.
+// TODO checker API: listen on checker_api_port; per-connection: drain, return MC.
 noreturn void crisp_checker_api_func(void* arg) {
     (void)arg;
     log_always("crisp_checker_api_func");

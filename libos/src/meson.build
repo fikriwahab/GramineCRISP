@@ -15,7 +15,7 @@ libos_sources = files(
     'bookkeep/libos_signal.c',
     'bookkeep/libos_thread.c',
     'bookkeep/libos_vma.c',
-    # CRISP — Session 1: header + stubs (full implementation incremental Session 2-10)
+    # CRISP integrity & rollback protection layer.
     'crisp/crisp_init.c',
     'crisp/crisp_fsync.c',
     'crisp/crisp_close.c',
