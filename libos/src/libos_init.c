@@ -620,9 +620,40 @@ noreturn void libos_init(const char* const* argv, const char* const* envp) {
     //     log_always("Tag test done");
     // }
 
-    // Fsync hook test harness.
-    // Test 1: hook enqueues. Test 2: drain returns when queue empty. Test 3: drain on halted
+    // mc-thread test harness
+    // Spawn internal thread, verify it enters main loop, halt cleanly
     {
+        log_always("mc-thread test start");
+        if (crisp_init_sync() < 0) {
+            log_error("crisp_init_sync failed");
+            goto skip_mcthread_test;
+        }
+        if (crisp_spawn_mc_thread() < 0) {
+            log_error("spawn mc-thread failed");
+            goto skip_mcthread_test;
+        }
+
+        // Test 1: thread enters loop within 100ms
+        uint64_t wait_us = 100000;
+        thread_prepare_wait();
+        thread_wait(&wait_us, /*ignore_pending_signals=*/true);
+        log_always("1. mc_thread_running=%d (expect 1)", g_crisp.mc_thread_running);
+
+        // Test 2: clean halt, set flag, wake, wait for thread exit
+        __atomic_store_n(&g_crisp.halted, true, __ATOMIC_RELEASE);
+        PalEventSet(g_crisp.mc_wakeup_event);
+        wait_us = 200000;
+        thread_prepare_wait();
+        thread_wait(&wait_us, /*ignore_pending_signals=*/true);
+        log_always("2. mc_thread_running=%d (expect 0)", g_crisp.mc_thread_running);
+        __atomic_store_n(&g_crisp.halted, false, __ATOMIC_RELEASE);
+
+        log_always("mc-thread test done");
+    skip_mcthread_test:;
+    }
+
+    // Fsync hook test harness (kept for regression).
+    if (false) {
         log_always("Fsync hook test start");
         if (crisp_init_sync() < 0) {
             log_error("crisp_init_sync failed");

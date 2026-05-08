@@ -79,6 +79,7 @@ noreturn void crisp_fail_stop(const char* reason);
 
 int  crisp_init(const char* vault_path, const char* mc_path);
 int  crisp_init_sync(void);
+int  crisp_spawn_mc_thread(void);
 int  crisp_on_fsync(void);
 int  crisp_on_close(void);
 void crisp_on_exit(void);
@@ -92,7 +93,7 @@ int  crisp_mc_read(uint64_t* value);
 int  crisp_mc_increment(uint64_t* new_value);
 int  crisp_flush_pf_by_path(const char* path);
 
-noreturn void crisp_mc_thread_func(void* arg);
+int crisp_mc_thread_func(void* arg);
 noreturn void crisp_checker_api_func(void* arg);
 
 #endif
