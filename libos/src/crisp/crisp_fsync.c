@@ -1,7 +1,8 @@
 /* SPDX-License-Identifier: LGPL-3.0-or-later */
-// fsync hook + drain/wait + waiter wakeup.
+// fsync hook + drain/wait + waiter wakeup
 
 #include <errno.h>
+#include <stdint.h>
 
 #include "api.h"
 #include "libos_internal.h"
@@ -10,8 +11,10 @@
 
 #include "crisp.h"
 
-// App thread enqueues fsync request, signals mc-thread, returns immediately.
-// Optimistic: caller does not wait for MC commit.
+// App thread enqueues fsync request, signals mc-thread, returns immediately
+// Optimistic: caller does not wait for MC commit
+// Probabilistic checker: checker_prob% of fsyncs block until committed, which
+// bounds batch size
 int crisp_on_fsync(void) {
     if (g_in_crisp_io)
         return 0;
@@ -29,11 +32,18 @@ int crisp_on_fsync(void) {
     if (g_crisp.mc_wakeup_event)
         PalEventSet(g_crisp.mc_wakeup_event);
 
+    if (g_crisp.checker_prob > 0) {
+        static uint32_t fsync_counter = 0;
+        uint32_t c = __atomic_fetch_add(&fsync_counter, 1, __ATOMIC_RELAXED);
+        if ((c % 100) < (uint32_t)g_crisp.checker_prob)
+            crisp_drain_and_wait();
+    }
+
     return 0;
 }
 
-// App thread blocks until queue drained AND S >= L (or halted).
-// Canonical wait pattern: register -> prepare -> barrier -> check -> wait.
+// App thread blocks until queue drained AND S >= L (or halted)
+// Canonical wait pattern: register -> prepare -> barrier -> check -> wait
 int crisp_drain_and_wait(void) {
     struct libos_thread* self = get_cur_thread();
     if (!self || is_internal(self))
@@ -98,8 +108,8 @@ check_halted:
     return __atomic_load_n(&g_crisp.halted, __ATOMIC_ACQUIRE) ? -ENOTRECOVERABLE : 0;
 }
 
-// mc-thread (or fail_stop) wakes all blocked app threads.
-// Also signals checker poll event for periodic check thread.
+// mc-thread (or fail_stop) wakes all blocked app threads
+// Also signals checker poll event for periodic check thread
 void crisp_wake_all_waiters(void) {
     spinlock_lock(&g_crisp.waiter_lock);
     for (int i = 0; i < g_crisp.waiter_count; i++) {

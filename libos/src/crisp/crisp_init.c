@@ -39,7 +39,7 @@ int crisp_init_sync(void) {
 
     if (!g_crisp.checker_poll_event &&
         PalEventCreate(&g_crisp.checker_poll_event, /*init_signaled=*/false,
-                       /*auto_clear=*/false) < 0)
+                       /*auto_clear=*/true) < 0)
         return -1;
 
     return 0;
