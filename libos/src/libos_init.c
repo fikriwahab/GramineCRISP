@@ -620,36 +620,101 @@ noreturn void libos_init(const char* const* argv, const char* const* envp) {
     //     log_always("Tag test done");
     // }
 
-    // mc-thread test harness
-    // Spawn internal thread, verify it enters main loop, halt cleanly
+    // CRISP integration test harness (mc-thread + close/exit hooks)
     {
-        log_always("mc-thread test start");
+        log_always("crisp test start");
         if (crisp_init_sync() < 0) {
             log_error("crisp_init_sync failed");
-            goto skip_mcthread_test;
+            goto skip_crisp_test;
         }
         if (crisp_spawn_mc_thread() < 0) {
             log_error("spawn mc-thread failed");
-            goto skip_mcthread_test;
+            goto skip_crisp_test;
         }
 
-        // Test 1: thread enters loop within 100ms
+        // T1: mc-thread enters main loop within 100ms
         uint64_t wait_us = 100000;
         thread_prepare_wait();
         thread_wait(&wait_us, /*ignore_pending_signals=*/true);
         log_always("1. mc_thread_running=%d (expect 1)", g_crisp.mc_thread_running);
 
-        // Test 2: clean halt, set flag, wake, wait for thread exit
+        // T2-T7: close/exit hook guard paths (mc-thread idle during these)
+        g_crisp.enabled = false;
+        int r2 = crisp_on_close();
+        log_always("2. close (disabled): ret=%d (expect 0)", r2);
+
+        g_crisp.enabled = true;
+        g_in_crisp_io = true;
+        int r3 = crisp_on_close();
+        log_always("3. close (g_in_crisp_io): ret=%d (expect 0)", r3);
+        g_in_crisp_io = false;
+
+        __atomic_store_n(&g_crisp.halted, true, __ATOMIC_RELEASE);
+        int r4 = crisp_on_close();
+        log_always("4. close (halted): ret=%d (expect -131)", r4);
+        __atomic_store_n(&g_crisp.halted, false, __ATOMIC_RELEASE);
+
+        g_crisp.enabled = false;
+        crisp_on_exit();
+        log_always("5. exit (disabled): ok");
+
+        g_crisp.enabled = true;
+        g_in_crisp_io = true;
+        crisp_on_exit();
+        log_always("6. exit (g_in_crisp_io): ok");
+        g_in_crisp_io = false;
+
+        __atomic_store_n(&g_crisp.halted, true, __ATOMIC_RELEASE);
+        crisp_on_exit();
+        log_always("7. exit (halted): ok");
+        __atomic_store_n(&g_crisp.halted, false, __ATOMIC_RELEASE);
+
+        // T8: close hook happy path (enqueue + drain + mc-thread commit)
+        // Gated: only runs if /crisp PFs available (i.e., run with crisp-tag-test)
+        static char* test_pf_paths[] = {"/crisp/a.dat", "/crisp/b.dat"};
+        if (crisp_flush_pf_by_path("/crisp/a.dat") == 0) {
+            snprintf(g_crisp.vault_path, sizeof(g_crisp.vault_path), "/crisp/vault.dat");
+            snprintf(g_crisp.mc_path, sizeof(g_crisp.mc_path), "/tmp/crisp_mc.dat");
+            if (crisp_mc_init() == 0) {
+                uint64_t S_before = 0;
+                crisp_mc_read(&S_before);
+                lock(&g_crisp.mu);
+                g_crisp.L = S_before;  // sync L to MC (mimics startup verify)
+                unlock(&g_crisp.mu);
+
+                g_crisp.pf_paths = test_pf_paths;
+                g_crisp.pf_count = 2;
+                g_crisp.enabled = true;
+                g_crisp.pending_count = 0;
+
+                int rc = crisp_on_close();  // enqueue + drain + mc-thread commit
+                uint64_t S_after = 0, L_after = 0;
+                crisp_mc_read(&S_after);
+                lock(&g_crisp.mu);
+                L_after = g_crisp.L;
+                unlock(&g_crisp.mu);
+                log_always("8. close happy path: ret=%d S=%lu->%lu L=%lu pending=%d",
+                           rc, S_before, S_after, L_after, g_crisp.pending_count);
+                log_always("   expect ret=0, S+1, L=S_after, pending=0");
+            } else {
+                log_always("8. close happy path: SKIP (mc_init failed)");
+            }
+        } else {
+            log_always("8. close happy path: SKIP (no /crisp PFs - run with crisp-tag-test)");
+        }
+
+        // T9: mc-thread clean halt
+        g_crisp.enabled = false;
         __atomic_store_n(&g_crisp.halted, true, __ATOMIC_RELEASE);
         PalEventSet(g_crisp.mc_wakeup_event);
         wait_us = 200000;
         thread_prepare_wait();
         thread_wait(&wait_us, /*ignore_pending_signals=*/true);
-        log_always("2. mc_thread_running=%d (expect 0)", g_crisp.mc_thread_running);
+        log_always("9. mc_thread_running=%d (expect 0)", g_crisp.mc_thread_running);
         __atomic_store_n(&g_crisp.halted, false, __ATOMIC_RELEASE);
 
-        log_always("mc-thread test done");
-    skip_mcthread_test:;
+        log_always("crisp test done");
+    skip_crisp_test:;
     }
 
     // Fsync hook test harness (kept for regression).
