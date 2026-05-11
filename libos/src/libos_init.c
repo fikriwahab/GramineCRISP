@@ -628,7 +628,7 @@ noreturn void libos_init(const char* const* argv, const char* const* envp) {
 
         if (crisp_available) {
             // T0: full crisp_init (sort pf_paths, mc_init, vault_load, 4-case verify,
-            //     spawn mc-thread, enabled=true). Run with crisp-tag-test (has /crisp).
+            //     spawn mc-thread, enabled=true). Run with crisp-tag-test (has /crisp)
             g_crisp.pf_paths = test_pf_paths;
             g_crisp.pf_count = 2;
             int init_ret = crisp_init("/crisp/vault.dat", "/tmp/crisp_mc.dat");
@@ -636,7 +636,7 @@ noreturn void libos_init(const char* const* argv, const char* const* envp) {
                        init_ret, g_crisp.enabled, g_crisp.L);
         } else {
             // intercept: no /crisp mount, full crisp_init can't run (vault path won't
-            // resolve cleanly + shared MC file). Just init sync + spawn for guard tests.
+            // resolve cleanly + shared MC file). Just init sync + spawn for guard tests
             if (crisp_init_sync() < 0) { log_error("crisp_init_sync failed"); goto skip_crisp_test; }
             if (crisp_spawn_mc_thread() < 0) { log_error("spawn mc-thread failed"); goto skip_crisp_test; }
             log_always("0. crisp_init: SKIP (no /crisp - run with crisp-tag-test)");
@@ -708,11 +708,31 @@ noreturn void libos_init(const char* const* argv, const char* const* envp) {
         log_always("9. mc_thread_running=%d (expect 0)", g_crisp.mc_thread_running);
         __atomic_store_n(&g_crisp.halted, false, __ATOMIC_RELEASE);
 
+        // T10: spawn checker API thread on a test port; verify it starts listening
+        // (thread stays in accept loop; process exit kills it)
+        g_crisp.checker_api_port = 19999;
+        if (crisp_spawn_checker_thread() < 0) {
+            log_always("10. checker spawn: FAILED");
+        } else {
+            wait_us = 150000;
+            thread_prepare_wait();
+            thread_wait(&wait_us, /*ignore_pending_signals=*/true);
+            log_always("10. checker spawn: handle=%p (expect non-NULL; see 'checker: listening' above)",
+                       g_crisp.checker_thread_handle);
+
+            // Demo window: keep process alive 30s so `nc localhost 19999` works
+            // from another terminal. Remove this block when not demoing
+            log_always("DEBUG: pause 30s for checker netcat demo");
+            uint64_t demo_pause_us = 30000000;
+            thread_prepare_wait();
+            thread_wait(&demo_pause_us, /*ignore_pending_signals=*/true);
+        }
+
         log_always("crisp test done");
     skip_crisp_test:;
     }
 
-    // Fsync hook test harness (kept for regression).
+    // Fsync hook test harness (kept for regression)
     if (false) {
         log_always("Fsync hook test start");
         if (crisp_init_sync() < 0) {
