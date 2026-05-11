@@ -39,6 +39,9 @@ typedef struct {
     struct libos_thread* mc_thread_handle;
     bool mc_thread_running;
 
+    // Checker API TCP server thread (internal).
+    struct libos_thread* checker_thread_handle;
+
     // Two separate events to avoid signal-stealing between mc-thread and checker.
     PAL_HANDLE mc_wakeup_event;         // set by fsync hooks
     PAL_HANDLE checker_poll_event;      // set by wake_all_waiters
@@ -80,6 +83,8 @@ noreturn void crisp_fail_stop(const char* reason);
 int  crisp_init(const char* vault_path, const char* mc_path);
 int  crisp_init_sync(void);
 int  crisp_spawn_mc_thread(void);
+int  crisp_spawn_checker_thread(void);
+int  crisp_config_load(void);
 int  crisp_on_fsync(void);
 int  crisp_on_close(void);
 void crisp_on_exit(void);
@@ -94,6 +99,6 @@ int  crisp_mc_increment(uint64_t* new_value);
 int  crisp_flush_pf_by_path(const char* path);
 
 int crisp_mc_thread_func(void* arg);
-noreturn void crisp_checker_api_func(void* arg);
+int crisp_checker_api_func(void* arg);
 
 #endif

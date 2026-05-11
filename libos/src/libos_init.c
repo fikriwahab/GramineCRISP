@@ -620,16 +620,26 @@ noreturn void libos_init(const char* const* argv, const char* const* envp) {
     //     log_always("Tag test done");
     // }
 
-    // CRISP integration test harness (mc-thread + close/exit hooks)
+    // CRISP integration test harness (crisp_init startup verify + close/exit hooks)
     {
         log_always("crisp test start");
-        if (crisp_init_sync() < 0) {
-            log_error("crisp_init_sync failed");
-            goto skip_crisp_test;
-        }
-        if (crisp_spawn_mc_thread() < 0) {
-            log_error("spawn mc-thread failed");
-            goto skip_crisp_test;
+        static char* test_pf_paths[] = {"/crisp/a.dat", "/crisp/b.dat"};
+        bool crisp_available = (crisp_flush_pf_by_path("/crisp/a.dat") == 0);
+
+        if (crisp_available) {
+            // T0: full crisp_init (sort pf_paths, mc_init, vault_load, 4-case verify,
+            //     spawn mc-thread, enabled=true). Run with crisp-tag-test (has /crisp).
+            g_crisp.pf_paths = test_pf_paths;
+            g_crisp.pf_count = 2;
+            int init_ret = crisp_init("/crisp/vault.dat", "/tmp/crisp_mc.dat");
+            log_always("0. crisp_init: ret=%d enabled=%d L=%lu",
+                       init_ret, g_crisp.enabled, g_crisp.L);
+        } else {
+            // intercept: no /crisp mount, full crisp_init can't run (vault path won't
+            // resolve cleanly + shared MC file). Just init sync + spawn for guard tests.
+            if (crisp_init_sync() < 0) { log_error("crisp_init_sync failed"); goto skip_crisp_test; }
+            if (crisp_spawn_mc_thread() < 0) { log_error("spawn mc-thread failed"); goto skip_crisp_test; }
+            log_always("0. crisp_init: SKIP (no /crisp - run with crisp-tag-test)");
         }
 
         // T1: mc-thread enters main loop within 100ms
@@ -670,35 +680,20 @@ noreturn void libos_init(const char* const* argv, const char* const* envp) {
         __atomic_store_n(&g_crisp.halted, false, __ATOMIC_RELEASE);
 
         // T8: close hook happy path (enqueue + drain + mc-thread commit)
-        // Gated: only runs if /crisp PFs available (i.e., run with crisp-tag-test)
-        static char* test_pf_paths[] = {"/crisp/a.dat", "/crisp/b.dat"};
-        if (crisp_flush_pf_by_path("/crisp/a.dat") == 0) {
-            snprintf(g_crisp.vault_path, sizeof(g_crisp.vault_path), "/crisp/vault.dat");
-            snprintf(g_crisp.mc_path, sizeof(g_crisp.mc_path), "/tmp/crisp_mc.dat");
-            if (crisp_mc_init() == 0) {
-                uint64_t S_before = 0;
-                crisp_mc_read(&S_before);
-                lock(&g_crisp.mu);
-                g_crisp.L = S_before;  // sync L to MC (mimics startup verify)
-                unlock(&g_crisp.mu);
-
-                g_crisp.pf_paths = test_pf_paths;
-                g_crisp.pf_count = 2;
-                g_crisp.enabled = true;
-                g_crisp.pending_count = 0;
-
-                int rc = crisp_on_close();  // enqueue + drain + mc-thread commit
-                uint64_t S_after = 0, L_after = 0;
-                crisp_mc_read(&S_after);
-                lock(&g_crisp.mu);
-                L_after = g_crisp.L;
-                unlock(&g_crisp.mu);
-                log_always("8. close happy path: ret=%d S=%lu->%lu L=%lu pending=%d",
-                           rc, S_before, S_after, L_after, g_crisp.pending_count);
-                log_always("   expect ret=0, S+1, L=S_after, pending=0");
-            } else {
-                log_always("8. close happy path: SKIP (mc_init failed)");
-            }
+        // crisp_init already set up vault_path/mc_path/pf_paths/L in T0 (if available)
+        if (crisp_available) {
+            uint64_t S_before = 0, S_after = 0, L_after = 0;
+            crisp_mc_read(&S_before);
+            g_crisp.enabled = true;
+            g_crisp.pending_count = 0;
+            int rc = crisp_on_close();  // enqueue + drain + mc-thread commit
+            crisp_mc_read(&S_after);
+            lock(&g_crisp.mu);
+            L_after = g_crisp.L;
+            unlock(&g_crisp.mu);
+            log_always("8. close happy path: ret=%d S=%lu->%lu L=%lu pending=%d",
+                       rc, S_before, S_after, L_after, g_crisp.pending_count);
+            log_always("   expect ret=0, S+1, L=S_after, pending=0");
         } else {
             log_always("8. close happy path: SKIP (no /crisp PFs - run with crisp-tag-test)");
         }
