@@ -62,6 +62,7 @@ int crisp_mc_thread_func(void* arg) {
             }
         }
 
+        // TODO: L1, extract this commit cycle (tag, ++L, vault_save, mc_increment, verify) into crisp_commit_now() so synchronous mode runs it inline
         uint8_t tag[CRISP_TAG_SIZE];
         if (crisp_compute_global_tag(tag) < 0)
             crisp_fail_stop("compute_global_tag failed");

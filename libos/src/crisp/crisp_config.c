@@ -117,6 +117,7 @@ int crisp_config_load(void) {
     if (load_int("sgx.crisp.checker_api_port", 0, 65535, &v) < 0)
         return -1;
     g_crisp.checker_api_port = (int)v;
+    // TODO: L1, parse sgx.crisp.mode (string optimistic|synchronous|checker), default optimistic, store into g_crisp.mode
 
     if (load_str("sgx.crisp.vault_path", g_crisp.vault_path, sizeof(g_crisp.vault_path)) < 0)
         return -1;

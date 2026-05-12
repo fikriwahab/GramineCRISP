@@ -37,6 +37,7 @@ int crisp_on_close(void) {
     if (__atomic_load_n(&g_crisp.halted, __ATOMIC_ACQUIRE))
         return -ENOTRECOVERABLE;
 
+    // TODO: L1, in synchronous mode every fsync already committed, so just crisp_commit_now() the close flush instead of enqueue + drain
     int ret = crisp_on_fsync();
     if (ret < 0)
         return ret;

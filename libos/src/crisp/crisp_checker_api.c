@@ -91,6 +91,9 @@ int crisp_checker_api_func(void* arg) {
 
     log_always("checker: listening on 127.0.0.1:%d", g_crisp.checker_api_port);
 
+    // TODO: L3, read an expected min MC from the client and block until S >= it, not just drain + reply current MC
+    // TODO: L3, single sequential listener, concurrent connections serialize, fine for a prototype
+    // TODO: L3, network egress gating, a proxy/caller that queries this Checker before externalizing
     while (!__atomic_load_n(&g_crisp.halted, __ATOMIC_ACQUIRE)) {
         PAL_HANDLE client = NULL;
         int ret = PalSocketAccept(g_crisp.checker_listener, /*options=*/0, &client,

@@ -11,6 +11,12 @@
 
 #include "crisp.h"
 
+// TODO: L1, the synchronous (pessimistic) commit, run the full cycle inline and block
+// see the commit body in crisp_mc_thread_func, the locking already allows this from an app thread
+int crisp_commit_now(void) {
+    return -ENOSYS;  // TODO: L1
+}
+
 // App thread enqueues fsync request, signals mc-thread, returns immediately
 // Optimistic: caller does not wait for MC commit
 // Probabilistic checker: checker_prob% of fsyncs block until committed, which
@@ -18,6 +24,8 @@
 int crisp_on_fsync(void) {
     if (__atomic_load_n(&g_crisp.halted, __ATOMIC_ACQUIRE))
         return -ENOTRECOVERABLE;
+
+    // TODO: L1, if g_crisp.mode == synchronous, return crisp_commit_now() here, skip the enqueue below
 
     lock(&g_crisp.queue_mu);
     if (g_crisp.oldest_enqueue_us == 0)
@@ -29,6 +37,7 @@ int crisp_on_fsync(void) {
     if (g_crisp.mc_wakeup_event)
         PalEventSet(g_crisp.mc_wakeup_event);
 
+    // TODO: L3, deterministic checker policy as an alternative to this random one below
     if (g_crisp.checker_prob > 0) {
         static uint32_t fsync_counter = 0;
         uint32_t c = __atomic_fetch_add(&fsync_counter, 1, __ATOMIC_RELAXED);
