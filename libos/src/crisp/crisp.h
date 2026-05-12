@@ -1,6 +1,10 @@
 /* SPDX-License-Identifier: LGPL-3.0-or-later */
 
-// Lock ordering: queue_mu -> mu -> waiter_lock -> mc_mu (file-scope in crisp_mc.c)
+// Lock ordering:
+//   tag_lock                       taken alone; outermost vs g_dcache_lock and inode->lock
+//                                  (serializes a PF flush against the global-tag computation)
+//   queue_mu -> mu -> waiter_lock  queue/state path
+//   mc_mu                          file-scope in crisp_mc.c; taken alone
 
 #ifndef _CRISP_H_
 #define _CRISP_H_
@@ -14,6 +18,8 @@
 #include "spinlock.h"
 #include "pal.h"
 #include "libos_fs_encrypted.h"
+
+struct libos_handle;
 
 #define CRISP_VAULT_MAGIC "CRSP"
 #define CRISP_TAG_SIZE    32
@@ -29,11 +35,16 @@ typedef struct {
 } crisp_vault_t;
 
 typedef struct {
-    bool enabled;                       // manifest gate; default false (BSS)
+    bool enabled;                       // set true at the end of crisp_init (fail-closed); default false (BSS)
+    bool manifest_enabled;              // sgx.crisp.enabled = true in the manifest
     uint64_t L;                         // promised MC; S read on demand from MC
 
     struct libos_lock mu;               // protects L, halted
     bool halted;                        // accessed atomically (ACQUIRE/RELEASE)
+
+    // serializes PF flushes (the fsync, close, and exit hooks) against the global-tag
+    // computation so the tag is a consistent point-in-time snapshot
+    struct libos_lock tag_lock;
 
     // mc-thread is internal (tid==0); cannot use thread_wait, uses PalEventWait.
     struct libos_thread* mc_thread_handle;
@@ -41,10 +52,12 @@ typedef struct {
 
     // Checker API TCP server thread (internal).
     struct libos_thread* checker_thread_handle;
+    PAL_HANDLE checker_listener;        // bound and listening before the thread spawns; fail-stop on bind error
 
     // Two separate events to avoid signal-stealing between mc-thread and checker.
     PAL_HANDLE mc_wakeup_event;         // set by fsync hooks
     PAL_HANDLE checker_poll_event;      // set by wake_all_waiters
+    PAL_HANDLE mc_sleep_event;          // never signaled, used only for the MC latency sleep
 
     // Queue is just a counter; the global tag is computed across all PFs.
     int                pending_count;
@@ -52,6 +65,7 @@ typedef struct {
     bool               queue_has_work;
     bool               batch_in_flight; // true while mc-thread is committing
     uint64_t           oldest_enqueue_us;
+    uint64_t           last_increment_us; // mc-thread only, for the optional rate limit
 
     // Manual waiter list (no condvar in Gramine).
     struct libos_thread* waiters[CRISP_MAX_WAITERS];
@@ -74,19 +88,17 @@ typedef struct {
 
 extern crisp_state_t g_crisp;
 
-// Recursion guard for vault VFS I/O. Plain global; __thread is unusable
-// because LibOS links with -nostdlib (no __tls_get_addr).
-extern bool g_in_crisp_io;
-
 noreturn void crisp_fail_stop(const char* reason);
 
 int  crisp_init(const char* vault_path, const char* mc_path);
 int  crisp_init_sync(void);
 int  crisp_spawn_mc_thread(void);
 int  crisp_spawn_checker_thread(void);
+int  crisp_checker_listen(void);
 int  crisp_config_load(void);
 int  crisp_on_fsync(void);
 int  crisp_on_close(void);
+int  crisp_close_handle(struct libos_handle* handle);
 void crisp_on_exit(void);
 int  crisp_drain_and_wait(void);
 void crisp_wake_all_waiters(void);

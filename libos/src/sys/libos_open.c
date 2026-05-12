@@ -22,6 +22,8 @@
 #include "linux_abi/memory.h"
 #include "stat.h"
 
+#include "crisp/crisp.h"
+
 ssize_t do_handle_read(struct libos_handle* hdl, void* buf, size_t count) {
     if (!(hdl->acc_mode & MAY_READ))
         return -EBADF;
@@ -170,10 +172,8 @@ long libos_syscall_close(int fd) {
     if (!handle)
         return -EBADF;
 
-    log_always(">>> INTERCEPT: close(fd=%d) dipanggil!", fd);
-
-    put_handle(handle);
-    return 0;
+    /* CRISP-aware close: for a tracked PF, flush under tag_lock then synchronously commit */
+    return crisp_close_handle(handle);
 }
 
 long libos_syscall_close_range(unsigned int first, unsigned int last, unsigned int flags) {
@@ -500,8 +500,6 @@ long libos_syscall_fsync(int fd) {
     if (!hdl)
         return -EBADF;
 
-    log_always(">>> INTERCEPT: fsync(fd=%d) dipanggil!", fd);
-
     int ret;
     struct libos_fs* fs = hdl->fs;
 
@@ -511,8 +509,12 @@ long libos_syscall_fsync(int fd) {
     }
 
     if (hdl->is_dir) {
-        /* FS subsystem doesn't do anything meaningful with dirs, so flushing a dir is a no-op */
+        /* FS subsystem doesn't do anything meaningful with dirs, so a dir flush is a no-op, but
+         * under CRISP a dir fsync on an encrypted mount is the durability point for directory-entry
+         * changes (unlink/rename/create of tracked PFs), so re-bind the tracked state to the MC */
         ret = 0;
+        if (g_crisp.enabled && fs == &chroot_encrypted_builtin_fs)
+            ret = crisp_on_fsync();
         goto out;
     }
 
@@ -521,7 +523,17 @@ long libos_syscall_fsync(int fd) {
         goto out;
     }
 
-    ret = fs->fs_ops->flush(hdl);
+    if (g_crisp.enabled && hdl->type == TYPE_CHROOT_ENCRYPTED) {
+        /* flush under tag_lock so the global-tag computation can't read a torn MAC,
+         * then enqueue the post-flush state for the mc-thread to commit */
+        lock(&g_crisp.tag_lock);
+        ret = fs->fs_ops->flush(hdl);
+        unlock(&g_crisp.tag_lock);
+        if (ret == 0)
+            ret = crisp_on_fsync();
+    } else {
+        ret = fs->fs_ops->flush(hdl);
+    }
 out:
     put_handle(hdl);
     return ret;

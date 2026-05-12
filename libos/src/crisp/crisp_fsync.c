@@ -16,15 +16,12 @@
 // Probabilistic checker: checker_prob% of fsyncs block until committed, which
 // bounds batch size
 int crisp_on_fsync(void) {
-    if (g_in_crisp_io)
-        return 0;
-
     if (__atomic_load_n(&g_crisp.halted, __ATOMIC_ACQUIRE))
         return -ENOTRECOVERABLE;
 
     lock(&g_crisp.queue_mu);
-    if (g_crisp.pending_count == 0)
-        PalSystemTimeQuery(&g_crisp.oldest_enqueue_us);
+    if (g_crisp.oldest_enqueue_us == 0)
+        PalSystemTimeQuery(&g_crisp.oldest_enqueue_us);  // age of the oldest uncommitted request
     g_crisp.pending_count++;
     g_crisp.queue_has_work = true;
     unlock(&g_crisp.queue_mu);

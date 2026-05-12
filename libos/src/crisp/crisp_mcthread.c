@@ -24,27 +24,42 @@ int crisp_mc_thread_func(void* arg) {
     g_crisp.mc_thread_running = true;
 
     while (1) {
-        PalEventWait(g_crisp.mc_wakeup_event, /*timeout=*/NULL);
-
         if (__atomic_load_n(&g_crisp.halted, __ATOMIC_ACQUIRE))
             break;
 
         lock(&g_crisp.queue_mu);
-        bool has_work = (g_crisp.pending_count > 0);
+        uint64_t batch_count = (uint64_t)g_crisp.pending_count;
         uint64_t enqueue_time = g_crisp.oldest_enqueue_us;
-        if (has_work)
+        if (batch_count > 0) {
             g_crisp.batch_in_flight = true;
+            g_crisp.oldest_enqueue_us = 0;  // this batch's requests are about to commit
+        }
         unlock(&g_crisp.queue_mu);
 
-        if (!has_work)
+        if (batch_count == 0) {
+            PalEventWait(g_crisp.mc_wakeup_event, /*timeout=*/NULL);
             continue;
+        }
 
-        if (g_crisp.queue_timeout_ms > 0 && enqueue_time > 0) {
+        // timeout check, effective threshold = queue_timeout + rate_limit (the rate limit
+        // deliberately throttles increments so it shouldn't itself trip the timeout)
+        uint64_t timeout_ms = g_crisp.queue_timeout_ms + g_crisp.rate_limit_ms;
+        if (timeout_ms > 0 && enqueue_time > 0) {
             uint64_t now;
             PalSystemTimeQuery(&now);
-            uint64_t elapsed_ms = (now - enqueue_time) / 1000;
-            if (elapsed_ms > g_crisp.queue_timeout_ms)
+            if ((now - enqueue_time) / 1000 > timeout_ms)
                 crisp_fail_stop("queue timeout exceeded");
+        }
+
+        // optional MC rate limit: keep MC increments at least rate_limit_ms apart
+        if (g_crisp.rate_limit_ms > 0 && g_crisp.last_increment_us > 0) {
+            uint64_t now;
+            PalSystemTimeQuery(&now);
+            uint64_t earliest = g_crisp.last_increment_us + g_crisp.rate_limit_ms * 1000;
+            if (now < earliest) {
+                uint64_t sleep_us = earliest - now;
+                PalEventWait(g_crisp.mc_sleep_event, &sleep_us);
+            }
         }
 
         uint8_t tag[CRISP_TAG_SIZE];
@@ -61,19 +76,21 @@ int crisp_mc_thread_func(void* arg) {
         uint64_t new_mc = 0;
         if (crisp_mc_increment(&new_mc) < 0)
             crisp_fail_stop("mc_increment failed");
+        PalSystemTimeQuery(&g_crisp.last_increment_us);
 
         if (new_mc != new_L)
             crisp_fail_stop("mc drift: new_mc != L");
 
+        // subtract only what this batch covered so fsyncs that arrived mid-commit
+        // stay counted, and the next iteration picks them up without waiting
         lock(&g_crisp.queue_mu);
-        g_crisp.pending_count = 0;
-        g_crisp.queue_has_work = false;
+        g_crisp.pending_count -= (int)batch_count;
         g_crisp.batch_in_flight = false;
-        g_crisp.oldest_enqueue_us = 0;
+        g_crisp.queue_has_work = (g_crisp.pending_count > 0);
         unlock(&g_crisp.queue_mu);
 
         crisp_wake_all_waiters();
-        log_debug("mc-thread: batch committed L=%lu", new_L);
+        log_debug("mc-thread: batch committed L=%lu (covered %lu)", new_L, batch_count);
     }
 
     log_always("mc-thread: exiting (halted)");

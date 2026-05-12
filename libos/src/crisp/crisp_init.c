@@ -29,6 +29,8 @@ int crisp_init_sync(void) {
         return -1;
     if (!lock_created(&g_crisp.queue_mu) && !create_lock(&g_crisp.queue_mu))
         return -1;
+    if (!lock_created(&g_crisp.tag_lock) && !create_lock(&g_crisp.tag_lock))
+        return -1;
 
     spinlock_init(&g_crisp.waiter_lock);
 
@@ -39,6 +41,11 @@ int crisp_init_sync(void) {
 
     if (!g_crisp.checker_poll_event &&
         PalEventCreate(&g_crisp.checker_poll_event, /*init_signaled=*/false,
+                       /*auto_clear=*/true) < 0)
+        return -1;
+
+    if (!g_crisp.mc_sleep_event &&
+        PalEventCreate(&g_crisp.mc_sleep_event, /*init_signaled=*/false,
                        /*auto_clear=*/true) < 0)
         return -1;
 
@@ -67,7 +74,7 @@ int crisp_spawn_mc_thread(void) {
 }
 
 // Spawn the checker API TCP server thread (internal), idempotent
-// Checker logic itself is stubbed until the checker API session
+// Precondition: crisp_checker_listen() has already created the bound listener
 int crisp_spawn_checker_thread(void) {
     if (g_crisp.checker_thread_handle)
         return 0;
@@ -164,8 +171,12 @@ int crisp_init(const char* vault_path, const char* mc_path) {
     if (crisp_spawn_mc_thread() < 0)
         return -1;
 
-    if (g_crisp.checker_api_port > 0 && crisp_spawn_checker_thread() < 0)
-        return -1;
+    if (g_crisp.checker_api_port > 0) {
+        if (crisp_checker_listen() < 0)
+            crisp_fail_stop("checker: bind/listen failed");
+        if (crisp_spawn_checker_thread() < 0)
+            return -1;
+    }
 
     // Enable CRISP only after all init steps succeed (fail-closed)
     g_crisp.enabled = true;

@@ -1,19 +1,36 @@
 /* SPDX-License-Identifier: LGPL-3.0-or-later */
-// Synchronous close + exit hooks, block until committed
+// CRISP-aware handle close + the synchronous close and exit hooks (block until committed)
 
 #include <errno.h>
 
 #include "api.h"
+#include "libos_fs.h"
+#include "libos_handle.h"
 #include "libos_internal.h"
 
 #include "crisp.h"
 
-// Close hook: enqueue the post-close-flush state, then block until committed
-// Called from libos_syscall_close AFTER put_handle (PF flush + MAC update done)
-int crisp_on_close(void) {
-    if (g_in_crisp_io)
-        return 0;
+// CRISP-aware handle close used by every user-facing fd close (close, close_range, dup2/dup3 overwrite)
+// for a tracked PF with CRISP on it flushes under tag_lock then synchronously commits via crisp_on_close,
+// otherwise it just put_handles, returning a flush error, -ENOTRECOVERABLE if halted, or 0
+int crisp_close_handle(struct libos_handle* handle) {
+    bool is_pf = (g_crisp.enabled && handle->type == TYPE_CHROOT_ENCRYPTED);
+    int fr = 0;
+    if (is_pf && handle->fs && handle->fs->fs_ops && handle->fs->fs_ops->flush) {
+        lock(&g_crisp.tag_lock);
+        fr = handle->fs->fs_ops->flush(handle);
+        unlock(&g_crisp.tag_lock);
+    }
+    put_handle(handle);
+    if (fr < 0)
+        return fr;
+    if (is_pf)
+        return crisp_on_close();
+    return 0;
+}
 
+// Close hook: enqueue the post-close-flush state, then block until committed
+int crisp_on_close(void) {
     if (!g_crisp.enabled)
         return 0;
 
@@ -33,12 +50,9 @@ int crisp_on_close(void) {
     return 0;
 }
 
-// Exit hook: force-flush all tracked PFs (MAC fresh), enqueue, block until committed
-// Called before process exit cleanup; the close chain has not run yet
+// Exit hook: force-flush every tracked PF that exists (MAC fresh), enqueue, block until committed
+// Called before process exit cleanup, the close chain has not run yet
 void crisp_on_exit(void) {
-    if (g_in_crisp_io)
-        return;
-
     if (!g_crisp.enabled)
         return;
 

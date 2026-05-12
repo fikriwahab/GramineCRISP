@@ -16,6 +16,8 @@
 #include "stat.h"
 #include "toml_utils.h"
 
+#include "crisp/crisp.h"
+
 static struct libos_lock handle_mgr_lock;
 
 #define HANDLE_MGR_ALLOC 32
@@ -736,7 +738,7 @@ void close_cloexec_handles(struct libos_handle_map* map) {
             rwlock_write_unlock(&map->lock);
             (void)clear_posix_locks(hdl);
 
-            put_handle(hdl);
+            (void)crisp_close_handle(hdl);  /* CRISP-aware close, covers FD_CLOEXEC closes on execve */
             rwlock_write_lock(&map->lock);
         }
     }
@@ -763,7 +765,7 @@ void close_handle_range(uint32_t first, uint32_t last, bool cloexec) {
             rwlock_write_unlock(&handle_map->lock);
             (void)clear_posix_locks(hdl);
 
-            put_handle(hdl);
+            (void)crisp_close_handle(hdl);  /* CRISP-aware close, covers close_range of a tracked PF */
             rwlock_write_lock(&handle_map->lock);
         }
     }

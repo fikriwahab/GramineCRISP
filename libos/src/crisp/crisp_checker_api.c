@@ -13,6 +13,45 @@
 
 #include "crisp.h"
 
+// Create + bind + listen on the configured port, store the listener into g_crisp.checker_listener
+// Called synchronously from crisp_init so a bind/listen failure is detected at init time and
+// fail-stops there, rather than fail-opening inside the thread (the operator asked for the L3
+// Checker, so it must be available). Returns 0 on success, -1 on failure.
+int crisp_checker_listen(void) {
+    PAL_HANDLE listener = NULL;
+    int ret = PalSocketCreate(PAL_IPV4, PAL_SOCKET_TCP, /*options=*/0, &listener);
+    if (ret < 0) {
+        log_error("checker: PalSocketCreate failed: %d", ret);
+        return -1;
+    }
+
+    // SO_REUSEADDR so a quick restart isn't blocked by the previous listener's TIME_WAIT (best-effort)
+    PAL_STREAM_ATTR attr;
+    if (PalStreamAttributesQueryByHandle(listener, &attr) == 0) {
+        attr.socket.reuseaddr = true;
+        PalStreamAttributesSetByHandle(listener, &attr);
+    }
+
+    struct pal_socket_addr addr = {0};
+    addr.domain = PAL_IPV4;
+    addr.ipv4.addr = htonl(0x7f000001u);  // 127.0.0.1, the Checker is a local-only endpoint
+    addr.ipv4.port = htons((uint16_t)g_crisp.checker_api_port);  // pal addr port is network byte order
+    ret = PalSocketBind(listener, &addr);
+    if (ret < 0) {
+        log_error("checker: PalSocketBind(port=%d) failed: %d", g_crisp.checker_api_port, ret);
+        PalObjectDestroy(listener);
+        return -1;
+    }
+    ret = PalSocketListen(listener, /*backlog=*/4);
+    if (ret < 0) {
+        log_error("checker: PalSocketListen failed: %d", ret);
+        PalObjectDestroy(listener);
+        return -1;
+    }
+    g_crisp.checker_listener = listener;
+    return 0;
+}
+
 // Block until queue drained AND S >= L, or halted
 // Internal-thread-safe: crisp_drain_and_wait asserts !is_internal, so the checker
 // uses this local poll loop on checker_poll_event instead
@@ -40,8 +79,8 @@ static void checker_drain(void) {
     }
 }
 
-// TCP server loop: accept connection, drain until S >= L, send MC value, close
-// Returns int (PalThreadCreate signature); exits via PalThreadExit in practice
+// TCP server loop: accept on the pre-bound listener, drain until S >= L, send the MC value, close
+// Returns int (PalThreadCreate signature), exits via PalThreadExit in practice
 int crisp_checker_api_func(void* arg) {
     struct libos_thread* self = (struct libos_thread*)arg;
     if (self) {
@@ -50,58 +89,19 @@ int crisp_checker_api_func(void* arg) {
         log_setprefix(libos_get_tcb());
     }
 
-    if (g_crisp.checker_api_port <= 0) {
-        log_always("checker: no port configured, exiting");
-        g_crisp.checker_thread_handle = NULL;
-        PalThreadExit(NULL);
-        return 0;
-    }
-
-    PAL_HANDLE listener = NULL;
-    int ret = PalSocketCreate(PAL_IPV4, PAL_SOCKET_TCP, /*options=*/0, &listener);
-    if (ret < 0) {
-        log_error("checker: PalSocketCreate failed: %d", ret);
-        g_crisp.checker_thread_handle = NULL;
-        PalThreadExit(NULL);
-        return 0;
-    }
-
-    struct pal_socket_addr addr = {0};
-    addr.domain = PAL_IPV4;
-    addr.ipv4.addr = 0;  // 0.0.0.0 (INADDR_ANY); htonl(0) == 0
-    addr.ipv4.port = htons((uint16_t)g_crisp.checker_api_port);  // pal addr port is network byte order
-
-    ret = PalSocketBind(listener, &addr);
-    if (ret < 0) {
-        log_error("checker: PalSocketBind(port=%d) failed: %d", g_crisp.checker_api_port, ret);
-        PalObjectDestroy(listener);
-        g_crisp.checker_thread_handle = NULL;
-        PalThreadExit(NULL);
-        return 0;
-    }
-
-    ret = PalSocketListen(listener, /*backlog=*/4);
-    if (ret < 0) {
-        log_error("checker: PalSocketListen failed: %d", ret);
-        PalObjectDestroy(listener);
-        g_crisp.checker_thread_handle = NULL;
-        PalThreadExit(NULL);
-        return 0;
-    }
-
-    log_always("checker: listening on 0.0.0.0:%d", g_crisp.checker_api_port);
+    log_always("checker: listening on 127.0.0.1:%d", g_crisp.checker_api_port);
 
     while (!__atomic_load_n(&g_crisp.halted, __ATOMIC_ACQUIRE)) {
         PAL_HANDLE client = NULL;
-        ret = PalSocketAccept(listener, /*options=*/0, &client, /*out_client_addr=*/NULL,
-                              /*out_local_addr=*/NULL);
+        int ret = PalSocketAccept(g_crisp.checker_listener, /*options=*/0, &client,
+                                  /*out_client_addr=*/NULL, /*out_local_addr=*/NULL);
         if (ret < 0)
-            continue;  // transient (EINTR etc.); halt is caught by loop condition
+            continue;  // transient (EINTR etc.), the halt flag is caught by the loop condition
 
-        // Block until all pending MC commits done (S >= L)
+        // Block until all pending MC commits are done (S >= L)
         checker_drain();
 
-        // Reply with current MC value (8 bytes, host byte order)
+        // Reply with the current MC value (8 bytes, host byte order)
         uint64_t S = 0;
         crisp_mc_read(&S);
         struct iovec iov = { .iov_base = &S, .iov_len = sizeof(S) };
@@ -113,7 +113,7 @@ int crisp_checker_api_func(void* arg) {
     }
 
     log_always("checker: exiting (halted)");
-    PalObjectDestroy(listener);
+    PalObjectDestroy(g_crisp.checker_listener);
     g_crisp.checker_thread_handle = NULL;
     PalThreadExit(NULL);
     return 0;

@@ -14,9 +14,6 @@
 
 #include "crisp.h"
 
-// Recursion guard: true while mc-thread is writing the vault itself.
-bool g_in_crisp_io = false;
-
 // SHA-256(magic || tag || L). Extra integrity layer on top of PF encryption.
 static void compute_checksum(const uint8_t* tag, uint64_t local_mc, uint8_t* out) {
     LIB_SHA256_CONTEXT ctx;
@@ -30,7 +27,6 @@ static void compute_checksum(const uint8_t* tag, uint64_t local_mc, uint8_t* out
 // Load vault from disk.
 // Returns: 0 = OK, -2 = fresh install (no file yet), -1 = error.
 int crisp_vault_load(crisp_vault_t* out) {
-    g_in_crisp_io = true;
     int ret = -1;
 
     struct libos_handle* hdl = get_new_handle();
@@ -62,7 +58,6 @@ int crisp_vault_load(crisp_vault_t* out) {
 
 done:
     put_handle(hdl);
-    g_in_crisp_io = false;
     if (ret == -1) log_error("vault_load: failed (r=%d)", r);
     return ret;
 }
@@ -77,10 +72,9 @@ int crisp_vault_save(const uint8_t* tag, uint64_t local_mc) {
     v.local_mc = local_mc;
     compute_checksum(tag, local_mc, v.checksum);
 
-    g_in_crisp_io = true;
     int ret = -1;
 
-    char tmp_path[260];
+    char tmp_path[300];
     snprintf(tmp_path, sizeof(tmp_path), "%s.tmp", g_crisp.vault_path);
 
     // Step 1: Write vault to tmp (encrypted by PF layer).
@@ -97,29 +91,30 @@ int crisp_vault_save(const uint8_t* tag, uint64_t local_mc) {
     }
     put_handle(hdl);
 
-    // Step 2: Atomic rename tmp -> vault (inline under dcache lock).
-    // libos_syscall_renameat rejects LibOS pointers; do_rename is static.
-    // Replicate core: lookup both dentries, call d_ops->rename, move inode.
+    // Step 2: atomic rename tmp -> vault (inline under the dcache lock)
+    // libos_syscall_renameat rejects LibOS pointers and do_rename is static, so
+    // replicate the core: look up both dentries, call d_ops->rename, move the inode
+    // every lookup and pointer is checked, a failure leaves ret == -1 so the
+    // mc-thread fail-stops cleanly instead of dereferencing a NULL dentry
     lock(&g_dcache_lock);
     struct libos_dentry *old_d = NULL, *new_d = NULL;
-
-    path_lookupat(NULL, tmp_path, LOOKUP_NO_FOLLOW, &old_d);
-    path_lookupat(NULL, g_crisp.vault_path, LOOKUP_NO_FOLLOW | LOOKUP_CREATE, &new_d);
-
-    int r = old_d->inode->fs->d_ops->rename(old_d, new_d);
-    if (r == 0) {
-        if (new_d->inode) put_inode(new_d->inode);
-        new_d->inode = old_d->inode;
-        old_d->inode = NULL;
-        ret = 0;
+    int lr1 = path_lookupat(NULL, tmp_path, LOOKUP_NO_FOLLOW, &old_d);
+    int lr2 = path_lookupat(NULL, g_crisp.vault_path, LOOKUP_NO_FOLLOW | LOOKUP_CREATE, &new_d);
+    if (lr1 == 0 && lr2 == 0 && old_d && old_d->inode && new_d &&
+        old_d->inode->fs && old_d->inode->fs->d_ops && old_d->inode->fs->d_ops->rename) {
+        int r = old_d->inode->fs->d_ops->rename(old_d, new_d);
+        if (r == 0) {
+            if (new_d->inode) put_inode(new_d->inode);
+            new_d->inode = old_d->inode;
+            old_d->inode = NULL;
+            ret = 0;
+        }
     }
-
-    put_dentry(old_d);
-    put_dentry(new_d);
+    if (old_d) put_dentry(old_d);
+    if (new_d) put_dentry(new_d);
     unlock(&g_dcache_lock);
 
 out:
-    g_in_crisp_io = false;
     if (ret == 0) log_debug("vault_save: OK, L=%lu", local_mc);
     else          log_error("vault_save: failed");
     return ret;

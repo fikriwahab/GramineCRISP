@@ -28,6 +28,8 @@
 #include "toml.h"
 #include "toml_utils.h"
 
+#include "crisp/crisp.h"
+
 static_assert(sizeof(libos_tcb_t) <= PAL_LIBOS_TCB_SIZE,
               "libos_tcb_t does not fit into PAL_TCB; please increase PAL_LIBOS_TCB_SIZE");
 
@@ -527,267 +529,278 @@ noreturn void libos_init(const char* const* argv, const char* const* envp) {
 
     log_debug("LibOS initialized");
 
-    // crisp
-    #include "crisp/crisp.h"
-
-    // Simulated MC test harness.
-    // Run with any app (e.g. CI-Examples/intercept).
-    // Manifest doesn't need encrypted mount.
-    // {
-    //     snprintf(g_crisp.mc_path, sizeof(g_crisp.mc_path), "/tmp/crisp_mc.dat");
-    //     g_crisp.mc_latency_ms = 0;  // skip sleep, mc_wakeup_event not yet created
-    //     log_always("Sim MC test start");
-    //     if (crisp_mc_init() == 0) {
-    //         uint64_t v;
-    //         crisp_mc_read(&v);       log_always("after init: v=%lu", v);
-    //         crisp_mc_increment(&v);  log_always("after inc1: v=%lu", v);
-    //         crisp_mc_increment(&v);  log_always("after inc2: v=%lu", v);
-    //         crisp_mc_increment(&v);  log_always("after inc3: v=%lu", v);
-    //     }
-    //     log_always("Sim MC test done");
-    // }
-
-    // Fail-stop test harness.
-    // Run with any app. Expect exit code 1 and CRISP FAIL-STOP log line.
-    // {
-    //     log_always("Fail-stop test: halted before = %d", g_crisp.halted);
-    //     crisp_fail_stop("test trigger from harness");
-    // }
-
-
-    // Vault save/load test harness.
-    // Run with CI-Examples/crisp-vault-test (manifest has encrypted /crisp mount).
-    
-    // {
-    //     snprintf(g_crisp.vault_path, sizeof(g_crisp.vault_path), "/crisp/vault.dat");
-    //     log_always("Vault test start");
-
-    //     uint8_t tag[CRISP_TAG_SIZE];
-    //     for (int i = 0; i < CRISP_TAG_SIZE; i++) tag[i] = (uint8_t)(0xA0 + i);
-
-    //     crisp_vault_t v0 = {0};
-    //     int r0 = crisp_vault_load(&v0);
-    //     log_always("load1 (expect -2 if fresh, 0 if persisted): %d", r0);
-
-    //     int rs = crisp_vault_save(tag, 42);
-    //     log_always("save (L=42): %d", rs);
-
-    //     crisp_vault_t v1 = {0};
-    //     int r1 = crisp_vault_load(&v1);
-    //     log_always("load2 (expect 0): %d, L=%lu, tag[0]=%02x tag[31]=%02x",
-    //                r1, v1.local_mc, v1.tag[0], v1.tag[31]);
-
-    //     int rs2 = crisp_vault_save(tag, 99);
-    //     log_always("save (L=99): %d", rs2);
-
-    //     crisp_vault_t v2 = {0};
-    //     int r2 = crisp_vault_load(&v2);
-    //     log_always("load3 (expect 0): %d, L=%lu", r2, v2.local_mc);
-
-    //     log_always("Vault test done");
-    // }
-
-    // Tag computation test harness.
-    // Run with CI-Examples/crisp-tag-test (app creates PF files on first run).
-    
-    // {
-    //     // make sure bahwa dia take path accountable, jangan ngikutin date nya 
-    //     // makesure di aes gcm noncenya dibikin sama semuanya aja (sistem-level nonce)   
-    //     static char* test_paths[] = {"/crisp/a.dat", "/crisp/b.dat"};
-    //     g_crisp.pf_paths = test_paths;
-    //     g_crisp.pf_count = 2;
-
-    //     log_always("Tag test start");
-    //     uint8_t tag[CRISP_TAG_SIZE];
-    //     char hex[CRISP_TAG_SIZE * 2 + 1];
-
-    //     int r = crisp_compute_global_tag(tag);
-    //     bytes2hex(tag, CRISP_TAG_SIZE, hex, sizeof(hex));
-    //     log_always("tag_boot:    ret=%d hex=%s", r, hex);
-
-    //     int rf = crisp_flush_pf_by_path("/crisp/a.dat");
-    //     log_always("flush a.dat: ret=%d", rf);
-    //     rf = crisp_flush_pf_by_path("/crisp/b.dat");
-    //     log_always("flush b.dat: ret=%d", rf);
-
-    //     uint8_t tag2[CRISP_TAG_SIZE];
-    //     crisp_compute_global_tag(tag2);
-    //     bytes2hex(tag2, CRISP_TAG_SIZE, hex, sizeof(hex));
-    //     log_always("tag_after:   hex=%s", hex);
-    //     int same = memcmp(tag, tag2, CRISP_TAG_SIZE) == 0;
-    //     log_always("same_in_run: %s", same ? "YES" : "NO");
-
-    //     log_always("Tag test done");
-    // }
-
-    // CRISP integration test harness (crisp_init startup verify + close/exit hooks)
-    {
-        log_always("crisp test start");
-        static char* test_pf_paths[] = {"/crisp/a.dat", "/crisp/b.dat"};
-        bool crisp_available = (crisp_flush_pf_by_path("/crisp/a.dat") == 0);
-
-        if (crisp_available) {
-            // T0: full crisp_init (sort pf_paths, mc_init, vault_load, 4-case verify,
-            //     spawn mc-thread, enabled=true). Run with crisp-tag-test (has /crisp)
-            g_crisp.pf_paths = test_pf_paths;
-            g_crisp.pf_count = 2;
-            int init_ret = crisp_init("/crisp/vault.dat", "/tmp/crisp_mc.dat");
-            log_always("0. crisp_init: ret=%d enabled=%d L=%lu",
-                       init_ret, g_crisp.enabled, g_crisp.L);
-        } else {
-            // intercept: no /crisp mount, full crisp_init can't run (vault path won't
-            // resolve cleanly + shared MC file). Just init sync + spawn for guard tests
-            if (crisp_init_sync() < 0) { log_error("crisp_init_sync failed"); goto skip_crisp_test; }
-            if (crisp_spawn_mc_thread() < 0) { log_error("spawn mc-thread failed"); goto skip_crisp_test; }
-            log_always("0. crisp_init: SKIP (no /crisp - run with crisp-tag-test)");
-        }
-
-        // T1: mc-thread enters main loop within 100ms
-        uint64_t wait_us = 100000;
-        thread_prepare_wait();
-        thread_wait(&wait_us, /*ignore_pending_signals=*/true);
-        log_always("1. mc_thread_running=%d (expect 1)", g_crisp.mc_thread_running);
-
-        // T2-T7: close/exit hook guard paths (mc-thread idle during these)
-        g_crisp.enabled = false;
-        int r2 = crisp_on_close();
-        log_always("2. close (disabled): ret=%d (expect 0)", r2);
-
-        g_crisp.enabled = true;
-        g_in_crisp_io = true;
-        int r3 = crisp_on_close();
-        log_always("3. close (g_in_crisp_io): ret=%d (expect 0)", r3);
-        g_in_crisp_io = false;
-
-        __atomic_store_n(&g_crisp.halted, true, __ATOMIC_RELEASE);
-        int r4 = crisp_on_close();
-        log_always("4. close (halted): ret=%d (expect -131)", r4);
-        __atomic_store_n(&g_crisp.halted, false, __ATOMIC_RELEASE);
-
-        g_crisp.enabled = false;
-        crisp_on_exit();
-        log_always("5. exit (disabled): ok");
-
-        g_crisp.enabled = true;
-        g_in_crisp_io = true;
-        crisp_on_exit();
-        log_always("6. exit (g_in_crisp_io): ok");
-        g_in_crisp_io = false;
-
-        __atomic_store_n(&g_crisp.halted, true, __ATOMIC_RELEASE);
-        crisp_on_exit();
-        log_always("7. exit (halted): ok");
-        __atomic_store_n(&g_crisp.halted, false, __ATOMIC_RELEASE);
-
-        // T8: close hook happy path (enqueue + drain + mc-thread commit)
-        // crisp_init already set up vault_path/mc_path/pf_paths/L in T0 (if available)
-        if (crisp_available) {
-            uint64_t S_before = 0, S_after = 0, L_after = 0;
-            crisp_mc_read(&S_before);
-            g_crisp.enabled = true;
-            g_crisp.pending_count = 0;
-            int rc = crisp_on_close();  // enqueue + drain + mc-thread commit
-            crisp_mc_read(&S_after);
-            lock(&g_crisp.mu);
-            L_after = g_crisp.L;
-            unlock(&g_crisp.mu);
-            log_always("8. close happy path: ret=%d S=%lu->%lu L=%lu pending=%d",
-                       rc, S_before, S_after, L_after, g_crisp.pending_count);
-            log_always("   expect ret=0, S+1, L=S_after, pending=0");
-        } else {
-            log_always("8. close happy path: SKIP (no /crisp PFs - run with crisp-tag-test)");
-        }
-
-        // T9: mc-thread clean halt
-        g_crisp.enabled = false;
-        __atomic_store_n(&g_crisp.halted, true, __ATOMIC_RELEASE);
-        PalEventSet(g_crisp.mc_wakeup_event);
-        wait_us = 200000;
-        thread_prepare_wait();
-        thread_wait(&wait_us, /*ignore_pending_signals=*/true);
-        log_always("9. mc_thread_running=%d (expect 0)", g_crisp.mc_thread_running);
-        __atomic_store_n(&g_crisp.halted, false, __ATOMIC_RELEASE);
-
-        // T10: spawn checker API thread on a test port; verify it starts listening
-        // (thread stays in accept loop; process exit kills it)
-        g_crisp.checker_api_port = 19999;
-        if (crisp_spawn_checker_thread() < 0) {
-            log_always("10. checker spawn: FAILED");
-        } else {
-            wait_us = 150000;
-            thread_prepare_wait();
-            thread_wait(&wait_us, /*ignore_pending_signals=*/true);
-            log_always("10. checker spawn: handle=%p (expect non-NULL; see 'checker: listening' above)",
-                       g_crisp.checker_thread_handle);
-
-            // Demo window: keep process alive 30s so `nc localhost 19999` works
-            // from another terminal. Remove this block when not demoing
-            log_always("DEBUG: pause 30s for checker netcat demo");
-            uint64_t demo_pause_us = 30000000;
-            thread_prepare_wait();
-            thread_wait(&demo_pause_us, /*ignore_pending_signals=*/true);
-        }
-
-        log_always("crisp test done");
-    skip_crisp_test:;
+    /* CRISP rollback protection, a no-op unless sgx.crisp.enabled is set in the manifest */
+    int crisp_cfg = crisp_config_load();
+    if (crisp_cfg < 0) {
+        log_error("CRISP config invalid in the manifest");
+        PalProcessExit(1);
+    }
+    if (crisp_cfg > 0 && crisp_init(g_crisp.vault_path, g_crisp.mc_path) < 0) {
+        log_error("CRISP init failed");
+        PalProcessExit(1);
     }
 
-    // Fsync hook test harness (kept for regression)
-    if (false) {
-        log_always("Fsync hook test start");
-        if (crisp_init_sync() < 0) {
-            log_error("crisp_init_sync failed");
-        } else {
-            log_always("init: queue_mu=%d mu=%d evt=%p",
-                       lock_created(&g_crisp.queue_mu),
-                       lock_created(&g_crisp.mu),
-                       g_crisp.mc_wakeup_event);
+    // // crisp
+    // #include "crisp/crisp.h"
 
-            int before = g_crisp.pending_count;
-            int r1 = crisp_on_fsync();
-            int after = g_crisp.pending_count;
-            log_always("1. enqueue: ret=%d, pending %d->%d", r1, before, after);
+    // // Simulated MC test harness.
+    // // Run with any app (e.g. CI-Examples/intercept).
+    // // Manifest doesn't need encrypted mount.
+    // // {
+    // //     snprintf(g_crisp.mc_path, sizeof(g_crisp.mc_path), "/tmp/crisp_mc.dat");
+    // //     g_crisp.mc_latency_ms = 0;  // skip sleep, mc_wakeup_event not yet created
+    // //     log_always("Sim MC test start");
+    // //     if (crisp_mc_init() == 0) {
+    // //         uint64_t v;
+    // //         crisp_mc_read(&v);       log_always("after init: v=%lu", v);
+    // //         crisp_mc_increment(&v);  log_always("after inc1: v=%lu", v);
+    // //         crisp_mc_increment(&v);  log_always("after inc2: v=%lu", v);
+    // //         crisp_mc_increment(&v);  log_always("after inc3: v=%lu", v);
+    // //     }
+    // //     log_always("Sim MC test done");
+    // // }
 
-            g_crisp.pending_count = 0;
-            g_crisp.queue_has_work = false;
-            g_crisp.batch_in_flight = false;
-            g_crisp.L = 0;
-            int r2 = crisp_drain_and_wait();
-            log_always("2. drain (empty queue): ret=%d", r2);
+    // // Fail-stop test harness.
+    // // Run with any app. Expect exit code 1 and CRISP FAIL-STOP log line.
+    // // {
+    // //     log_always("Fail-stop test: halted before = %d", g_crisp.halted);
+    // //     crisp_fail_stop("test trigger from harness");
+    // // }
 
-            __atomic_store_n(&g_crisp.halted, true, __ATOMIC_RELEASE);
-            int r3 = crisp_drain_and_wait();
-            log_always("3. drain (halted): ret=%d", r3);
-            __atomic_store_n(&g_crisp.halted, false, __ATOMIC_RELEASE);
 
-            crisp_wake_all_waiters();
-            log_always("4. wake_all_waiters (no waiters): ok");
+    // // Vault save/load test harness.
+    // // Run with CI-Examples/crisp-vault-test (manifest has encrypted /crisp mount).
+    
+    // // {
+    // //     snprintf(g_crisp.vault_path, sizeof(g_crisp.vault_path), "/crisp/vault.dat");
+    // //     log_always("Vault test start");
 
-            int r5 = crisp_on_fsync();
-            __atomic_store_n(&g_crisp.halted, true, __ATOMIC_RELEASE);
-            int r6 = crisp_on_fsync();
-            log_always("5. fsync (normal then halted): ret=%d %d", r5, r6);
-            __atomic_store_n(&g_crisp.halted, false, __ATOMIC_RELEASE);
+    // //     uint8_t tag[CRISP_TAG_SIZE];
+    // //     for (int i = 0; i < CRISP_TAG_SIZE; i++) tag[i] = (uint8_t)(0xA0 + i);
 
-            g_crisp.pending_count = 0;
-            crisp_on_fsync();
-            crisp_on_fsync();
-            crisp_on_fsync();
-            log_always("6. 3x enqueue: pending=%d (expect 3)", g_crisp.pending_count);
+    // //     crisp_vault_t v0 = {0};
+    // //     int r0 = crisp_vault_load(&v0);
+    // //     log_always("load1 (expect -2 if fresh, 0 if persisted): %d", r0);
 
-            g_crisp.pending_count = 0;
-            __atomic_store_n(&g_crisp.halted, true, __ATOMIC_RELEASE);
-            int r7a = crisp_on_fsync();
-            int r7b = crisp_on_fsync();
-            log_always("7. halted blocks enqueue: ret=%d %d, pending=%d (expect 0)",
-                       r7a, r7b, g_crisp.pending_count);
-            __atomic_store_n(&g_crisp.halted, false, __ATOMIC_RELEASE);
+    // //     int rs = crisp_vault_save(tag, 42);
+    // //     log_always("save (L=42): %d", rs);
 
-            g_crisp.pending_count = 0;
+    // //     crisp_vault_t v1 = {0};
+    // //     int r1 = crisp_vault_load(&v1);
+    // //     log_always("load2 (expect 0): %d, L=%lu, tag[0]=%02x tag[31]=%02x",
+    // //                r1, v1.local_mc, v1.tag[0], v1.tag[31]);
 
-            log_always("Fsync hook test done");
-        }
-    }
+    // //     int rs2 = crisp_vault_save(tag, 99);
+    // //     log_always("save (L=99): %d", rs2);
+
+    // //     crisp_vault_t v2 = {0};
+    // //     int r2 = crisp_vault_load(&v2);
+    // //     log_always("load3 (expect 0): %d, L=%lu", r2, v2.local_mc);
+
+    // //     log_always("Vault test done");
+    // // }
+
+    // // Tag computation test harness.
+    // // Run with CI-Examples/crisp-tag-test (app creates PF files on first run).
+    
+    // // {
+    // //     // make sure bahwa dia take path accountable, jangan ngikutin date nya 
+    // //     // makesure di aes gcm noncenya dibikin sama semuanya aja (sistem-level nonce)   
+    // //     static char* test_paths[] = {"/crisp/a.dat", "/crisp/b.dat"};
+    // //     g_crisp.pf_paths = test_paths;
+    // //     g_crisp.pf_count = 2;
+
+    // //     log_always("Tag test start");
+    // //     uint8_t tag[CRISP_TAG_SIZE];
+    // //     char hex[CRISP_TAG_SIZE * 2 + 1];
+
+    // //     int r = crisp_compute_global_tag(tag);
+    // //     bytes2hex(tag, CRISP_TAG_SIZE, hex, sizeof(hex));
+    // //     log_always("tag_boot:    ret=%d hex=%s", r, hex);
+
+    // //     int rf = crisp_flush_pf_by_path("/crisp/a.dat");
+    // //     log_always("flush a.dat: ret=%d", rf);
+    // //     rf = crisp_flush_pf_by_path("/crisp/b.dat");
+    // //     log_always("flush b.dat: ret=%d", rf);
+
+    // //     uint8_t tag2[CRISP_TAG_SIZE];
+    // //     crisp_compute_global_tag(tag2);
+    // //     bytes2hex(tag2, CRISP_TAG_SIZE, hex, sizeof(hex));
+    // //     log_always("tag_after:   hex=%s", hex);
+    // //     int same = memcmp(tag, tag2, CRISP_TAG_SIZE) == 0;
+    // //     log_always("same_in_run: %s", same ? "YES" : "NO");
+
+    // //     log_always("Tag test done");
+    // // }
+
+    // // CRISP integration test harness (crisp_init startup verify + close/exit hooks)
+    // {
+        // log_always("crisp test start");
+        // static char* test_pf_paths[] = {"/crisp/a.dat", "/crisp/b.dat"};
+        // bool crisp_available = (crisp_flush_pf_by_path("/crisp/a.dat") == 0);
+
+        // if (crisp_available) {
+            // // T0: full crisp_init (sort pf_paths, mc_init, vault_load, 4-case verify,
+            // //     spawn mc-thread, enabled=true). Run with crisp-tag-test (has /crisp)
+            // g_crisp.pf_paths = test_pf_paths;
+            // g_crisp.pf_count = 2;
+            // int init_ret = crisp_init("/crisp/vault.dat", "/tmp/crisp_mc.dat");
+            // log_always("0. crisp_init: ret=%d enabled=%d L=%lu",
+                       // init_ret, g_crisp.enabled, g_crisp.L);
+        // } else {
+            // // intercept: no /crisp mount, full crisp_init can't run (vault path won't
+            // // resolve cleanly + shared MC file). Just init sync + spawn for guard tests
+            // if (crisp_init_sync() < 0) { log_error("crisp_init_sync failed"); goto skip_crisp_test; }
+            // if (crisp_spawn_mc_thread() < 0) { log_error("spawn mc-thread failed"); goto skip_crisp_test; }
+            // log_always("0. crisp_init: SKIP (no /crisp - run with crisp-tag-test)");
+        // }
+
+        // // T1: mc-thread enters main loop within 100ms
+        // uint64_t wait_us = 100000;
+        // thread_prepare_wait();
+        // thread_wait(&wait_us, /*ignore_pending_signals=*/true);
+        // log_always("1. mc_thread_running=%d (expect 1)", g_crisp.mc_thread_running);
+
+        // // T2-T7: close/exit hook guard paths (mc-thread idle during these)
+        // g_crisp.enabled = false;
+        // int r2 = crisp_on_close();
+        // log_always("2. close (disabled): ret=%d (expect 0)", r2);
+
+        // g_crisp.enabled = true;
+        // g_in_crisp_io = true;
+        // int r3 = crisp_on_close();
+        // log_always("3. close (g_in_crisp_io): ret=%d (expect 0)", r3);
+        // g_in_crisp_io = false;
+
+        // __atomic_store_n(&g_crisp.halted, true, __ATOMIC_RELEASE);
+        // int r4 = crisp_on_close();
+        // log_always("4. close (halted): ret=%d (expect -131)", r4);
+        // __atomic_store_n(&g_crisp.halted, false, __ATOMIC_RELEASE);
+
+        // g_crisp.enabled = false;
+        // crisp_on_exit();
+        // log_always("5. exit (disabled): ok");
+
+        // g_crisp.enabled = true;
+        // g_in_crisp_io = true;
+        // crisp_on_exit();
+        // log_always("6. exit (g_in_crisp_io): ok");
+        // g_in_crisp_io = false;
+
+        // __atomic_store_n(&g_crisp.halted, true, __ATOMIC_RELEASE);
+        // crisp_on_exit();
+        // log_always("7. exit (halted): ok");
+        // __atomic_store_n(&g_crisp.halted, false, __ATOMIC_RELEASE);
+
+        // // T8: close hook happy path (enqueue + drain + mc-thread commit)
+        // // crisp_init already set up vault_path/mc_path/pf_paths/L in T0 (if available)
+        // if (crisp_available) {
+            // uint64_t S_before = 0, S_after = 0, L_after = 0;
+            // crisp_mc_read(&S_before);
+            // g_crisp.enabled = true;
+            // g_crisp.pending_count = 0;
+            // int rc = crisp_on_close();  // enqueue + drain + mc-thread commit
+            // crisp_mc_read(&S_after);
+            // lock(&g_crisp.mu);
+            // L_after = g_crisp.L;
+            // unlock(&g_crisp.mu);
+            // log_always("8. close happy path: ret=%d S=%lu->%lu L=%lu pending=%d",
+                       // rc, S_before, S_after, L_after, g_crisp.pending_count);
+            // log_always("   expect ret=0, S+1, L=S_after, pending=0");
+        // } else {
+            // log_always("8. close happy path: SKIP (no /crisp PFs - run with crisp-tag-test)");
+        // }
+
+        // // T9: mc-thread clean halt
+        // g_crisp.enabled = false;
+        // __atomic_store_n(&g_crisp.halted, true, __ATOMIC_RELEASE);
+        // PalEventSet(g_crisp.mc_wakeup_event);
+        // wait_us = 200000;
+        // thread_prepare_wait();
+        // thread_wait(&wait_us, /*ignore_pending_signals=*/true);
+        // log_always("9. mc_thread_running=%d (expect 0)", g_crisp.mc_thread_running);
+        // __atomic_store_n(&g_crisp.halted, false, __ATOMIC_RELEASE);
+
+        // // T10: spawn checker API thread on a test port; verify it starts listening
+        // // (thread stays in accept loop; process exit kills it)
+        // g_crisp.checker_api_port = 19999;
+        // if (crisp_spawn_checker_thread() < 0) {
+            // log_always("10. checker spawn: FAILED");
+        // } else {
+            // wait_us = 150000;
+            // thread_prepare_wait();
+            // thread_wait(&wait_us, /*ignore_pending_signals=*/true);
+            // log_always("10. checker spawn: handle=%p (expect non-NULL; see 'checker: listening' above)",
+                       // g_crisp.checker_thread_handle);
+
+            // // Demo window: keep process alive 30s so `nc localhost 19999` works
+            // // from another terminal. Remove this block when not demoing
+            // log_always("DEBUG: pause 30s for checker netcat demo");
+            // uint64_t demo_pause_us = 30000000;
+            // thread_prepare_wait();
+            // thread_wait(&demo_pause_us, /*ignore_pending_signals=*/true);
+        // }
+
+        // log_always("crisp test done");
+    // skip_crisp_test:;
+    // }
+
+    // // Fsync hook test harness (kept for regression)
+    // if (false) {
+        // log_always("Fsync hook test start");
+        // if (crisp_init_sync() < 0) {
+            // log_error("crisp_init_sync failed");
+        // } else {
+            // log_always("init: queue_mu=%d mu=%d evt=%p",
+                       // lock_created(&g_crisp.queue_mu),
+                       // lock_created(&g_crisp.mu),
+                       // g_crisp.mc_wakeup_event);
+
+            // int before = g_crisp.pending_count;
+            // int r1 = crisp_on_fsync();
+            // int after = g_crisp.pending_count;
+            // log_always("1. enqueue: ret=%d, pending %d->%d", r1, before, after);
+
+            // g_crisp.pending_count = 0;
+            // g_crisp.queue_has_work = false;
+            // g_crisp.batch_in_flight = false;
+            // g_crisp.L = 0;
+            // int r2 = crisp_drain_and_wait();
+            // log_always("2. drain (empty queue): ret=%d", r2);
+
+            // __atomic_store_n(&g_crisp.halted, true, __ATOMIC_RELEASE);
+            // int r3 = crisp_drain_and_wait();
+            // log_always("3. drain (halted): ret=%d", r3);
+            // __atomic_store_n(&g_crisp.halted, false, __ATOMIC_RELEASE);
+
+            // crisp_wake_all_waiters();
+            // log_always("4. wake_all_waiters (no waiters): ok");
+
+            // int r5 = crisp_on_fsync();
+            // __atomic_store_n(&g_crisp.halted, true, __ATOMIC_RELEASE);
+            // int r6 = crisp_on_fsync();
+            // log_always("5. fsync (normal then halted): ret=%d %d", r5, r6);
+            // __atomic_store_n(&g_crisp.halted, false, __ATOMIC_RELEASE);
+
+            // g_crisp.pending_count = 0;
+            // crisp_on_fsync();
+            // crisp_on_fsync();
+            // crisp_on_fsync();
+            // log_always("6. 3x enqueue: pending=%d (expect 3)", g_crisp.pending_count);
+
+            // g_crisp.pending_count = 0;
+            // __atomic_store_n(&g_crisp.halted, true, __ATOMIC_RELEASE);
+            // int r7a = crisp_on_fsync();
+            // int r7b = crisp_on_fsync();
+            // log_always("7. halted blocks enqueue: ret=%d %d, pending=%d (expect 0)",
+                       // r7a, r7b, g_crisp.pending_count);
+            // __atomic_store_n(&g_crisp.halted, false, __ATOMIC_RELEASE);
+
+            // g_crisp.pending_count = 0;
+
+            // log_always("Fsync hook test done");
+        // }
+    // }
 
     libos_tcb_t* cur_tcb = libos_get_tcb();
 

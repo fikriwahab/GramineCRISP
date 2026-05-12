@@ -17,6 +17,8 @@
 #include "libos_utils.h"
 #include "pal.h"
 
+#include "crisp/crisp.h"
+
 static noreturn void libos_clean_and_exit(int exit_code) {
     /*
      * TODO: if we are the IPC leader, we need to either:
@@ -124,6 +126,11 @@ noreturn void thread_exit(int error_code, int term_signal) {
         /* UNREACHABLE */
     }
 
+    /* CRISP: this is the last thread of the process, so block until all batches commit
+     * before exit (PFs are still open here, detach_all_fds runs below) */
+    if (g_crisp.enabled)
+        crisp_on_exit();
+
     /* Clear file (POSIX) locks before we notify parent: after a successful `wait()` by parent, our
      * locks should already be gone. */
     int ret = file_lock_clear_pid(g_process.pid);
@@ -202,8 +209,6 @@ long libos_syscall_exit_group(int error_code) {
 
     error_code &= 0xFF;
 
-    log_always(">>> INTERCEPT: exit_group(error_code=%d) dipanggil!", error_code);
-
     log_debug("---- exit_group (returning %d)", error_code);
 
     process_exit(error_code, 0);
@@ -213,8 +218,6 @@ long libos_syscall_exit(int error_code) {
     assert(!is_internal(get_cur_thread()));
 
     error_code &= 0xFF;
-
-    log_always(">>> INTERCEPT: exit(error_code=%d) dipanggil!", error_code);
 
     log_debug("---- exit (returning %d)", error_code);
 

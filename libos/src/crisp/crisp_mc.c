@@ -47,9 +47,16 @@ int crisp_mc_init(void) {
         }
         size_t count = sizeof(mc_value);
         ret = PalStreamWrite(hdl, /*offset=*/0, &count, &mc_value);
-        PalObjectDestroy(hdl);
         if (ret < 0 || count != sizeof(mc_value)) {
             log_error("crisp_mc_init: initial write failed");
+            PalObjectDestroy(hdl);
+            unlock(&mc_mu);
+            return -1;
+        }
+        ret = PalStreamFlush(hdl);
+        PalObjectDestroy(hdl);
+        if (ret < 0) {
+            log_error("crisp_mc_init: initial flush failed: %d", ret);
             unlock(&mc_mu);
             return -1;
         }
@@ -84,10 +91,11 @@ int crisp_mc_read(uint64_t* value) {
 
 // Simulate hardware latency, increment, atomic write+rename.
 int crisp_mc_increment(uint64_t* new_value) {
-    // Sleep before lock so concurrent crisp_mc_read calls aren't blocked.
+    // wait on the dedicated never-signaled event so we don't steal the mc-thread's
+    // wakeup, and do it before taking the lock so concurrent reads aren't blocked
     if (g_crisp.mc_latency_ms > 0) {
         uint64_t sleep_us = g_crisp.mc_latency_ms * 1000;
-        PalEventWait(g_crisp.mc_wakeup_event, &sleep_us);
+        PalEventWait(g_crisp.mc_sleep_event, &sleep_us);
     }
 
     lock(&mc_mu);
@@ -95,7 +103,7 @@ int crisp_mc_increment(uint64_t* new_value) {
     *new_value = mc_value;
     uint64_t snapshot = mc_value;
 
-    char tmp_path[260];
+    char tmp_path[300];
     snprintf(tmp_path, sizeof(tmp_path), "%s.tmp", g_crisp.mc_path);
 
     char tmp_uri_s[300], mc_uri_s[300];

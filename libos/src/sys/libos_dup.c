@@ -11,6 +11,8 @@
 #include "libos_thread.h"
 #include "linux_abi/errors.h"
 
+#include "crisp/crisp.h"
+
 long libos_syscall_dup(unsigned int fd) {
     struct libos_handle_map* handle_map = get_thread_handle_map(NULL);
     assert(handle_map);
@@ -44,7 +46,7 @@ long libos_syscall_dup2(unsigned int oldfd, unsigned int newfd) {
     struct libos_handle* new_hdl = detach_fd_handle(newfd, NULL, handle_map);
 
     if (new_hdl)
-        put_handle(new_hdl);
+        (void)crisp_close_handle(new_hdl);  /* CRISP-aware close of the overwritten fd */
 
     // dup2() always zeroes fd flags
     int vfd = set_new_fd_handle_by_fd(newfd, hdl, /*fd_flags=*/0, handle_map);
@@ -69,7 +71,7 @@ long libos_syscall_dup3(unsigned int oldfd, unsigned int newfd, int flags) {
     struct libos_handle* new_hdl = detach_fd_handle(newfd, NULL, handle_map);
 
     if (new_hdl)
-        put_handle(new_hdl);
+        (void)crisp_close_handle(new_hdl);  /* CRISP-aware close of the overwritten fd */
 
     int fd_flags = (flags & O_CLOEXEC) ? FD_CLOEXEC : 0;
     int vfd = set_new_fd_handle_by_fd(newfd, hdl, fd_flags, handle_map);

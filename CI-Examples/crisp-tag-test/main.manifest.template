@@ -1,5 +1,5 @@
 libos.entrypoint = "/main"
-loader.log_level = "error"
+loader.log_level = "debug"
 
 loader.env.LD_LIBRARY_PATH = "/lib"
 
@@ -10,6 +10,13 @@ fs.mounts = [
   { path = "/main", uri = "file:main" },
   { type = "encrypted", path = "/crisp", uri = "file:pf_dir" },
 ]
+
+sgx.crisp.enabled = true
+sgx.crisp.vault_path = "/crisp/vault.dat"
+sgx.crisp.mc_path = "/tmp/crisp_mc.dat"
+sgx.crisp.tracked_pfs = ["/crisp/a.dat", "/crisp/b.dat"]
+sgx.crisp.queue_timeout_ms = 5000
+sgx.crisp.checker_api_port = 19999
 
 sgx.debug = true
 sgx.enclave_size = "256M"
