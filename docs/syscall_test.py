@@ -12,6 +12,7 @@ RT = "{{ gramine.runtimedir() }}"
 
 GRAMINE_CMD = os.environ.get("GRAMINE_CMD", "gramine-direct")
 IS_SGX = GRAMINE_CMD == "gramine-sgx"
+VERBOSE = os.environ.get("VERBOSE") == "1"
 
 def manifest(crisp, extra_mounts="", extra_trusted="", loglevel="debug"):
     max_threads = 'sgx.max_threads = 16\n' if IS_SGX else ''
@@ -68,9 +69,23 @@ def setup(d, app_c, mani, child_c=None):
                        cwd=d, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 def run(d, t=25):
-    p = subprocess.run([GRAMINE_CMD, "main"], cwd=d, stdout=subprocess.PIPE,
-                       stderr=subprocess.STDOUT, text=True, timeout=t)
-    return p.returncode, p.stdout
+    if not VERBOSE:
+        p = subprocess.run([GRAMINE_CMD, "main"], cwd=d, stdout=subprocess.PIPE,
+                           stderr=subprocess.STDOUT, text=True, timeout=t)
+        return p.returncode, p.stdout
+    proc = subprocess.Popen([GRAMINE_CMD, "main"], cwd=d, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT, text=True)
+    buf = []
+    try:
+        for line in iter(proc.stdout.readline, ''):
+            sys.stdout.write(line)
+            sys.stdout.flush()
+            buf.append(line)
+        proc.wait(timeout=t)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait()
+    return proc.returncode, ''.join(buf)
 
 def run_bg(d):
     return subprocess.Popen([GRAMINE_CMD, "main"], cwd=d, stdout=subprocess.PIPE,
