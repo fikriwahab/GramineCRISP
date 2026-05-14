@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-# Builds tiny C apps and manifests under /tmp, runs them under gramine-direct, and
-# checks the on-disk MC file / vault file / Checker socket / exit codes
-# and gramine-manifest run with --no-check (the schema does not know sgx.crisp.* yet)
+# Builds tiny C apps and manifests under /tmp, runs them under gramine-direct or gramine-sgx,
+# and checks the on-disk MC file / vault file / Checker socket / exit codes
+# gramine-manifest run with --no-check (the schema does not know sgx.crisp.* yet on older builds)
+# set GRAMINE_CMD=gramine-sgx to run under a real SGX enclave (signs manifest + max_threads=16)
 
 import os, shutil, socket, struct, subprocess, sys, tempfile, time
 from pathlib import Path
@@ -9,7 +10,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 RT = "{{ gramine.runtimedir() }}"
 
+GRAMINE_CMD = os.environ.get("GRAMINE_CMD", "gramine-direct")
+IS_SGX = GRAMINE_CMD == "gramine-sgx"
+
 def manifest(crisp, extra_mounts="", extra_trusted="", loglevel="debug"):
+    max_threads = 'sgx.max_threads = 16\n' if IS_SGX else ''
     return (
         'libos.entrypoint = "/main"\n'
         f'loader.log_level = "{loglevel}"\n'
@@ -23,6 +28,7 @@ def manifest(crisp, extra_mounts="", extra_trusted="", loglevel="debug"):
         f'{crisp}'
         'sgx.debug = true\n'
         'sgx.enclave_size = "256M"\n'
+        f'{max_threads}'
         'sgx.trusted_files = [\n  "file:main",\n'
         f'{extra_trusted}  "file:{RT}/",\n]\n'
     )
@@ -56,14 +62,18 @@ def setup(d, app_c, mani, child_c=None):
                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     subprocess.run(["gramine-manifest", "--no-check", "main.manifest.template", "main.manifest"],
                    cwd=d, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if IS_SGX:
+        subprocess.run(["gramine-sgx-sign", "--manifest", "main.manifest",
+                        "--output", "main.manifest.sgx"],
+                       cwd=d, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 def run(d, t=25):
-    p = subprocess.run(["gramine-direct", "main"], cwd=d, stdout=subprocess.PIPE,
+    p = subprocess.run([GRAMINE_CMD, "main"], cwd=d, stdout=subprocess.PIPE,
                        stderr=subprocess.STDOUT, text=True, timeout=t)
     return p.returncode, p.stdout
 
 def run_bg(d):
-    return subprocess.Popen(["gramine-direct", "main"], cwd=d, stdout=subprocess.PIPE,
+    return subprocess.Popen([GRAMINE_CMD, "main"], cwd=d, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, text=True)
 
 def mc(path):
