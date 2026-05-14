@@ -20,6 +20,7 @@ sgx.crisp.checker_api_port = 19999
 
 sgx.debug = true
 sgx.enclave_size = "256M"
+sgx.max_threads = 16
 
 sgx.trusted_files = [
   "file:main",
