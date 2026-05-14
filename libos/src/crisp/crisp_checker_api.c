@@ -93,7 +93,7 @@ int crisp_checker_api_func(void* arg) {
 
     // TODO: L3, read an expected min MC from the client and block until S >= it, not just drain + reply current MC
     // TODO: L3, single sequential listener, concurrent connections serialize, fine for a prototype
-    // TODO: L3, network egress gating, a proxy/caller that queries this Checker before externalizing
+    // TODO: future-work (Checker API and SCONE network shield-like integration), basically making a proxy that queries this Checker before externalizing any data or something
     while (!__atomic_load_n(&g_crisp.halted, __ATOMIC_ACQUIRE)) {
         PAL_HANDLE client = NULL;
         int ret = PalSocketAccept(g_crisp.checker_listener, /*options=*/0, &client,
