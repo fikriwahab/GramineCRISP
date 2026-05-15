@@ -84,15 +84,20 @@ int crisp_on_fsync(void) {
     if (g_crisp.mc_wakeup_event)
         PalEventSet(g_crisp.mc_wakeup_event);
 
-    // L3: deterministic periodic checker — block every (100/checker_prob)-th fsync
-    // e.g. prob=25 -> every 4th call; prob=50 -> every 2nd; prob=100 -> every call
+    // L3: probabilistic checker per paper — each fsync independently triggers
+    // with checker_prob% probability; adversary cannot predict check timing
     if (g_crisp.checker_prob > 0) {
-        static uint32_t fsync_counter = 0;
-        uint32_t c = __atomic_fetch_add(&fsync_counter, 1, __ATOMIC_RELAXED);
-        uint32_t period = (uint32_t)(100 / (uint32_t)g_crisp.checker_prob);
-        if (period == 0)
-            period = 1;
-        if ((c % period) == 0)
+        static uint64_t rng_state = 0;
+        uint64_t s = __atomic_load_n(&rng_state, __ATOMIC_RELAXED);
+        if (s == 0) {
+            PalSystemTimeQuery(&s);
+            if (s == 0) s = 1;
+        }
+        s ^= s << 13;
+        s ^= s >> 7;
+        s ^= s << 17;
+        __atomic_store_n(&rng_state, s, __ATOMIC_RELAXED);
+        if (s % 100 < (uint64_t)g_crisp.checker_prob)
             crisp_drain_and_wait();
     }
 
