@@ -31,7 +31,6 @@ int crisp_mc_thread_func(void* arg) {
         uint64_t batch_count = (uint64_t)g_crisp.pending_count;
         uint64_t enqueue_time = g_crisp.oldest_enqueue_us;
         if (batch_count > 0) {
-            g_crisp.batch_in_flight = true;
             g_crisp.oldest_enqueue_us = 0;  // this batch's requests are about to commit
         }
         unlock(&g_crisp.queue_mu);
@@ -62,36 +61,19 @@ int crisp_mc_thread_func(void* arg) {
             }
         }
 
-        // TODO: L1, extract this commit cycle (tag, ++L, vault_save, mc_increment, verify) into crisp_commit_now() so synchronous mode runs it inline
-        uint8_t tag[CRISP_TAG_SIZE];
-        if (crisp_compute_global_tag(tag) < 0)
-            crisp_fail_stop("compute_global_tag failed");
-
-        lock(&g_crisp.mu);
-        uint64_t new_L = ++g_crisp.L;
-        unlock(&g_crisp.mu);
-
-        if (crisp_vault_save(tag, new_L) < 0)
-            crisp_fail_stop("vault_save failed");
-
-        uint64_t new_mc = 0;
-        if (crisp_mc_increment(&new_mc) < 0)
-            crisp_fail_stop("mc_increment failed");
-        PalSystemTimeQuery(&g_crisp.last_increment_us);
-
-        if (new_mc != new_L)
-            crisp_fail_stop("mc drift: new_mc != L");
+        int r = crisp_commit_now();
+        if (r < 0)
+            crisp_fail_stop("commit cycle failed");
 
         // subtract only what this batch covered so fsyncs that arrived mid-commit
         // stay counted, and the next iteration picks them up without waiting
         lock(&g_crisp.queue_mu);
         g_crisp.pending_count -= (int)batch_count;
-        g_crisp.batch_in_flight = false;
         g_crisp.queue_has_work = (g_crisp.pending_count > 0);
         unlock(&g_crisp.queue_mu);
 
         crisp_wake_all_waiters();
-        log_debug("mc-thread: batch committed L=%lu (covered %lu)", new_L, batch_count);
+        log_debug("mc-thread: batch committed (covered %lu)", batch_count);
     }
 
     log_always("mc-thread: exiting (halted)");

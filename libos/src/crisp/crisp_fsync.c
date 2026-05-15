@@ -11,10 +11,51 @@
 
 #include "crisp.h"
 
-// TODO: L1, the synchronous (pessimistic) commit, run the full cycle inline and block
-// see the commit body in crisp_mc_thread_func, the locking already allows this from an app thread
+// Synchronous (pessimistic) commit: tag -> ++L -> vault_save -> mc_increment -> verify
+// Safe to call from app thread or mc-thread.
+// Returns 0 on success, negative errno on failure — caller is responsible for fail-stop.
 int crisp_commit_now(void) {
-    return -ENOSYS;  // TODO: L1
+    uint8_t tag[CRISP_TAG_SIZE];
+    uint64_t new_L  = 0;
+    uint64_t new_mc = 0;
+    int ret = -EIO;
+
+    if (__atomic_load_n(&g_crisp.halted, __ATOMIC_ACQUIRE))
+        return -ENOTRECOVERABLE;
+
+    // Signal to drain_and_wait() that a commit is in progress
+    lock(&g_crisp.queue_mu);
+    g_crisp.batch_in_flight = true;
+    unlock(&g_crisp.queue_mu);
+
+    if (crisp_compute_global_tag(tag) < 0)
+        goto out;
+
+    lock(&g_crisp.mu);
+    new_L = ++g_crisp.L;
+    unlock(&g_crisp.mu);
+
+    if (crisp_vault_save(tag, new_L) < 0)
+        goto out;
+
+    if (crisp_mc_increment(&new_mc) < 0)
+        goto out;
+    PalSystemTimeQuery(&g_crisp.last_increment_us);
+
+    if (new_mc != new_L)
+        goto out;
+
+    ret = 0;
+    log_debug("crisp_commit_now: committed L=%lu", new_L);
+
+out:
+    lock(&g_crisp.queue_mu);
+    g_crisp.batch_in_flight = false;
+    g_crisp.queue_has_work = (g_crisp.pending_count > 0);
+    unlock(&g_crisp.queue_mu);
+
+    crisp_wake_all_waiters();
+    return ret;
 }
 
 // App thread enqueues fsync request, signals mc-thread, returns immediately
@@ -25,7 +66,13 @@ int crisp_on_fsync(void) {
     if (__atomic_load_n(&g_crisp.halted, __ATOMIC_ACQUIRE))
         return -ENOTRECOVERABLE;
 
-    // TODO: L1, if g_crisp.mode == synchronous, return crisp_commit_now() here, skip the enqueue below
+    // L1: synchronous mode — commit inline, skip enqueue
+    if (g_crisp.mode == 1) {
+        int r = crisp_commit_now();
+        if (r < 0)
+            crisp_fail_stop("synchronous fsync commit failed");
+        return 0;
+    }
 
     lock(&g_crisp.queue_mu);
     if (g_crisp.oldest_enqueue_us == 0)
@@ -37,11 +84,15 @@ int crisp_on_fsync(void) {
     if (g_crisp.mc_wakeup_event)
         PalEventSet(g_crisp.mc_wakeup_event);
 
-    // TODO: L3, deterministic checker policy as an alternative to this random one below
+    // L3: deterministic periodic checker — block every (100/checker_prob)-th fsync
+    // e.g. prob=25 -> every 4th call; prob=50 -> every 2nd; prob=100 -> every call
     if (g_crisp.checker_prob > 0) {
         static uint32_t fsync_counter = 0;
         uint32_t c = __atomic_fetch_add(&fsync_counter, 1, __ATOMIC_RELAXED);
-        if ((c % 100) < (uint32_t)g_crisp.checker_prob)
+        uint32_t period = (uint32_t)(100 / (uint32_t)g_crisp.checker_prob);
+        if (period == 0)
+            period = 1;
+        if ((c % period) == 0)
             crisp_drain_and_wait();
     }
 
