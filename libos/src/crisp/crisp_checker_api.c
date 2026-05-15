@@ -52,31 +52,40 @@ int crisp_checker_listen(void) {
     return 0;
 }
 
-// Block until queue drained AND S >= L, or halted
+// Block until S >= expected_min, or halted.
 // Internal-thread-safe: crisp_drain_and_wait asserts !is_internal, so the checker
-// uses this local poll loop on checker_poll_event instead
-static void checker_drain(void) {
+// uses this local poll loop on checker_poll_event instead.
+static void checker_wait_min(uint64_t expected_min) {
     while (1) {
         if (__atomic_load_n(&g_crisp.halted, __ATOMIC_ACQUIRE))
             return;
 
-        lock(&g_crisp.queue_mu);
-        bool queue_empty = (g_crisp.pending_count == 0);
-        bool in_flight = g_crisp.batch_in_flight;
-        unlock(&g_crisp.queue_mu);
-
         uint64_t S = 0;
         crisp_mc_read(&S);
-        lock(&g_crisp.mu);
-        uint64_t L = g_crisp.L;
-        unlock(&g_crisp.mu);
-
-        if (queue_empty && !in_flight && S >= L)
+        if (S >= expected_min)
             return;
 
         uint64_t timeout_us = 5000;
         PalEventWait(g_crisp.checker_poll_event, &timeout_us);
     }
+}
+
+static bool checker_recv_exact(PAL_HANDLE client, void* buf, size_t len) {
+    uint8_t* dst = (uint8_t*)buf;
+    size_t remaining = len;
+
+    while (remaining > 0) {
+        struct iovec iov = { .iov_base = dst, .iov_len = remaining };
+        size_t got = 0;
+        int ret = PalSocketRecv(client, &iov, /*iov_len=*/1, &got, /*addr=*/NULL,
+                                /*force_nonblocking=*/false);
+        if (ret < 0 || got == 0)
+            return false;
+        dst += got;
+        remaining -= got;
+    }
+
+    return true;
 }
 
 // TCP server loop: accept on the pre-bound listener, drain until S >= L, send the MC value, close
@@ -91,7 +100,6 @@ int crisp_checker_api_func(void* arg) {
 
     log_always("checker: listening on 127.0.0.1:%d", g_crisp.checker_api_port);
 
-    // TODO: L3, read an expected min MC from the client and block until S >= it, not just drain + reply current MC
     // TODO: L3, single sequential listener, concurrent connections serialize, fine for a prototype
     // TODO: future-work (Checker API and SCONE network shield-like integration), basically making a proxy that queries this Checker before externalizing any data or something
     while (!__atomic_load_n(&g_crisp.halted, __ATOMIC_ACQUIRE)) {
@@ -101,8 +109,14 @@ int crisp_checker_api_func(void* arg) {
         if (ret < 0)
             continue;  // transient (EINTR etc.), the halt flag is caught by the loop condition
 
-        // Block until all pending MC commits are done (S >= L)
-        checker_drain();
+        uint64_t expected_min = 0;
+        if (!checker_recv_exact(client, &expected_min, sizeof(expected_min))) {
+            PalObjectDestroy(client);
+            continue;
+        }
+
+        // Block until S >= expected_min
+        checker_wait_min(expected_min);
 
         // Reply with the current MC value (8 bytes, host byte order)
         uint64_t S = 0;
