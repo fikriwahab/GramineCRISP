@@ -196,6 +196,10 @@ curl_proj = subproject('curl-8.8.0')
 cjson_proj = subproject('cJSON-1.7.12')
 libcbor_proj = subproject('libcbor-0.11.0')
 
+if enable_tests
+    subdir('tests')
+endif
+
 if sgx
     # XXX: do not call subproject() from under "if sgx" conditional, because it
     # breaks `meson dist`: `-Dsgx` checks for presence of sgx.h header and we
