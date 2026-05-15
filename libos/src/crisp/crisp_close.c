@@ -71,6 +71,13 @@ void crisp_on_exit(void) {
         }
     }
 
+    if (g_crisp.mode == 1) {
+        int ret = crisp_commit_now();
+        if (ret < 0)
+            crisp_fail_stop("crisp_on_exit: synchronous commit failed");
+        return;
+    }
+
     int ret = crisp_on_fsync();
     if (ret < 0)
         crisp_fail_stop("crisp_on_exit: enqueue failed");
