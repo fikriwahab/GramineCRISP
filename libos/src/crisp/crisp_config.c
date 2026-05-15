@@ -117,7 +117,29 @@ int crisp_config_load(void) {
     if (load_int("sgx.crisp.checker_api_port", 0, 65535, &v) < 0)
         return -1;
     g_crisp.checker_api_port = (int)v;
-    // TODO: L1, parse sgx.crisp.mode (string optimistic|synchronous|checker), default optimistic, store into g_crisp.mode
+// TODO: replace numeric mode values with named constants (CRISP_MODE_*) once defined.    
+    char* mode = NULL;
+    if (toml_string_in(g_manifest_root, "sgx.crisp.mode", &mode) < 0) {
+        log_error("crisp_config: sgx.crisp.mode is not a valid string");
+        return -1;
+    }
+
+    if (mode) {
+        if (strcmp(mode, "optimistic") == 0)
+            g_crisp.mode = 0;
+        else if (strcmp(mode, "synchronous") == 0)
+            g_crisp.mode = 1;
+        else if (strcmp(mode, "checker") == 0)
+            g_crisp.mode = 2;
+        else {
+            log_error("crisp_config: sgx.crisp.mode must be one of optimistic|synchronous|checker");
+            free(mode);
+            return -1;
+        }
+        free(mode);
+    } else {
+        g_crisp.mode = 0;  // default optimistic
+    }
 
     if (load_str("sgx.crisp.vault_path", g_crisp.vault_path, sizeof(g_crisp.vault_path)) < 0)
         return -1;
