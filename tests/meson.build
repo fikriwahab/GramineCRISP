@@ -62,3 +62,18 @@ crisp_config_test = executable(
 )
 
 test('crisp-config-parse', crisp_config_test, args: ['all'])
+
+crisp_close_test = executable(
+    'test_crisp_close',
+    [
+        'test_crisp_close.c',
+        '../libos/src/crisp/crisp_close.c',
+    ],
+    include_directories: crisp_test_inc,
+    c_args: crisp_test_cargs,
+    install: false,
+)
+
+test('crisp-close-sync-ok', crisp_close_test, args: ['sync_close_ok'])
+test('crisp-close-sync-fail', crisp_close_test, args: ['sync_close_fail'])
+test('crisp-close-async-fsync', crisp_close_test, args: ['async_close_fsync'])

@@ -1,6 +1,8 @@
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
 
 #include "crisp/crisp.h"
@@ -8,11 +10,16 @@
 // Provide the global state used by crisp_close.c 
 crisp_state_t g_crisp = {0};
 bool g_in_crisp_io = false;
+int g_log_level = 0;
 
 static int drain_ret = 0;
 static int flush_ret = 0;
 static int failstop_called = 0;
 static int failstop_exit_code = 100;
+static int commit_ret = 0;
+static int fsync_ret = 0;
+static int commit_called = 0;
+static int fsync_called = 0;
 
 int crisp_drain_and_wait(void) {
     return drain_ret;
@@ -21,6 +28,42 @@ int crisp_drain_and_wait(void) {
 int crisp_flush_pf_by_path(const char* path) {
     (void)path;
     return flush_ret;
+}
+
+int crisp_commit_now(void) {
+    commit_called++;
+    return commit_ret;
+}
+
+int crisp_on_fsync(void) {
+    fsync_called++;
+    return fsync_ret;
+}
+
+void libos_log(int level, const char* file, const char* func, uint64_t line, const char* fmt, ...) {
+    (void)level;
+    (void)file;
+    (void)func;
+    (void)line;
+    (void)fmt;
+}
+
+noreturn void libos_abort(void) {
+    exit(101);
+}
+
+int PalEventWait(PAL_HANDLE handle, uint64_t* timeout_us) {
+    (void)handle;
+    (void)timeout_us;
+    return 0;
+}
+
+void PalEventSet(PAL_HANDLE handle) {
+    (void)handle;
+}
+
+void put_handle(struct libos_handle* handle) {
+    (void)handle;
 }
 
 // terminate process with deterministic code.
@@ -33,7 +76,7 @@ noreturn void crisp_fail_stop(const char* reason) {
 int main(int argc, char** argv) {
     if (argc != 2) {
         fprintf(stderr,
-                "usage: %s <disabled_close|enabled_close_ok|enabled_close_fail|exit_ok|exit_drain_fail|exit_flush_fail>\n",
+                "usage: %s <disabled_close|enabled_close_ok|enabled_close_fail|exit_ok|exit_drain_fail|exit_flush_fail|sync_close_ok|sync_close_fail|async_close_fsync>\n",
                 argv[0]);
         return 2;
     }
@@ -56,6 +99,46 @@ int main(int argc, char** argv) {
         g_crisp.enabled = true;
         drain_ret = -1;
         crisp_on_close();
+        return 0;
+    }
+
+    if (strcmp(argv[1], "sync_close_ok") == 0) {
+        g_crisp.enabled = true;
+        g_crisp.mode = 1;
+        commit_ret = 0;
+        fsync_ret = 0;
+        commit_called = 0;
+        fsync_called = 0;
+        int ret = crisp_on_close();
+        if (ret != 0 || commit_called != 1 || fsync_called != 0)
+            return 1;
+        return 0;
+    }
+
+    if (strcmp(argv[1], "sync_close_fail") == 0) {
+        g_crisp.enabled = true;
+        g_crisp.mode = 1;
+        commit_ret = -5;
+        fsync_ret = 0;
+        commit_called = 0;
+        fsync_called = 0;
+        int ret = crisp_on_close();
+        if (ret != -5 || commit_called != 1 || fsync_called != 0)
+            return 1;
+        return 0;
+    }
+
+    if (strcmp(argv[1], "async_close_fsync") == 0) {
+        g_crisp.enabled = true;
+        g_crisp.mode = 0;
+        drain_ret = 0;
+        commit_ret = 0;
+        fsync_ret = 0;
+        commit_called = 0;
+        fsync_called = 0;
+        int ret = crisp_on_close();
+        if (ret != 0 || fsync_called != 1 || commit_called != 0)
+            return 1;
         return 0;
     }
 
