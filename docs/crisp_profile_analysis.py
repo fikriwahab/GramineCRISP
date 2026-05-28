@@ -20,13 +20,17 @@ CSV_PREFIX = "[CRISP CSV] "
 
 
 def extract_csv(log_path):
-    """Read log file, return concatenated CSV text from [CRISP CSV] lines."""
+    """Read log file, return concatenated CSV text from [CRISP CSV] lines.
+    Gramine may prefix log lines with debug info, so we search anywhere in the line."""
     out = []
     with open(log_path) as f:
         for line in f:
             idx = line.find(CSV_PREFIX)
             if idx >= 0:
-                out.append(line[idx + len(CSV_PREFIX):])
+                # Take everything after the prefix, strip trailing newline
+                payload = line[idx + len(CSV_PREFIX):].rstrip("\n")
+                if payload:
+                    out.append(payload + "\n")
     return "".join(out)
 
 

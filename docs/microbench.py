@@ -106,7 +106,7 @@ sgx.trusted_files = [
 ]
 """
 
-CSV_LINE_RE = re.compile(r"^\[CRISP CSV\] (.+)$", re.MULTILINE)
+CSV_LINE_RE = re.compile(r"\[CRISP CSV\] (.+?)$", re.MULTILINE)
 METRIC_RE = re.compile(r"MICROBENCH .* elapsed_us=(\d+) throughput_kbps=([\d.]+)")
 
 
