@@ -380,7 +380,9 @@ def case_checker_blocks_on_pending(d, mcp):
     # In-flight batch requires async commit, default is now synchronous so we opt in to optimistic
     setup(d, APP_CHECKER_SLOW, manifest(crisp_keys(mcp, port=19314, tracked='["/cr/a.dat"]', latency=2500, mode="optimistic")))
     p = run_bg(d); time.sleep(0.6)               # connect while the 2.5s batch is in flight
-    t0 = time.time(); cm = checker(19314, deadline=12.0); blocked_ms = int((time.time()-t0)*1000)
+    # App queues one fsync so promised L = 1, request expected_min=1 to make the checker block
+    # until S catches up (commit done), which is the behavior under test
+    t0 = time.time(); cm = checker(19314, deadline=12.0, expected_min=1); blocked_ms = int((time.time()-t0)*1000)
     p.wait(timeout=20); m = mc(mcp)              # m = final MC (incl. the exit-hook batch), cm = MC seen by the probe
     ok = isinstance(cm, int) and isinstance(m, int) and cm >= 1 and cm <= m and blocked_ms >= 1200
     return ok, dict(checker_returned=cm, mc_final=m, blocked_ms=blocked_ms)
