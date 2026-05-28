@@ -35,7 +35,7 @@ def manifest(crisp, extra_mounts="", extra_trusted="", loglevel="debug"):
     )
 
 def crisp_keys(mcpath, port=0, tracked='["/cr/a.dat", "/cr/b.dat"]', enabled=True,
-               latency=0, prob=0, qtimeout=0, extra=""):
+               latency=0, prob=0, qtimeout=0, mode=None, extra=""):
     if not enabled:
         return "sgx.crisp.enabled = false\n"
     s = "sgx.crisp.enabled = true\n"
@@ -46,6 +46,7 @@ def crisp_keys(mcpath, port=0, tracked='["/cr/a.dat", "/cr/b.dat"]', enabled=Tru
     if latency:  s += f"sgx.crisp.mc_latency_ms = {latency}\n"
     if prob:     s += f"sgx.crisp.checker_prob = {prob}\n"
     if qtimeout: s += f"sgx.crisp.queue_timeout_ms = {qtimeout}\n"
+    if mode:     s += f'sgx.crisp.mode = "{mode}"\n'
     return s + extra
 
 def write(p, txt):
@@ -113,7 +114,7 @@ def checker(port, deadline=8.0):
             time.sleep(0.1)
     return None
 
-def n_batches(out):  return out.count("mc-thread: batch committed")
+def n_batches(out):  return out.count("mc-thread: batch committed") + out.count("crisp_commit_now: committed")
 def has_covered_gt1(out):
     import re
     return any(int(m) > 1 for m in re.findall(r"covered (\d+)", out))
@@ -359,7 +360,8 @@ def case_vault_is_encrypted(d, mcp):
     return ok, dict(vault_bytes=len(vb), plaintext_magic_present=b"CRSP" in vb)
 
 def case_batch_squash(d, mcp):
-    setup(d, APP_BURST, manifest(crisp_keys(mcp, tracked='["/cr/a.dat"]')))
+    # Batching only happens in optimistic mode, default is now synchronous so we opt in explicitly
+    setup(d, APP_BURST, manifest(crisp_keys(mcp, tracked='["/cr/a.dat"]', mode="optimistic")))
     rc, out = run(d, t=40); m = mc(mcp)
     ok = rc == 0 and m and m < 30 and has_covered_gt1(out)
     return ok, dict(rc=rc, mc=m, n_fsyncs=30, batches=n_batches(out), squashed=has_covered_gt1(out))
@@ -373,7 +375,8 @@ def case_checker_returns_mc(d, mcp):
     return ok, dict(checker=cm, mc=m)
 
 def case_checker_blocks_on_pending(d, mcp):
-    setup(d, APP_CHECKER_SLOW, manifest(crisp_keys(mcp, port=19314, tracked='["/cr/a.dat"]', latency=2500)))
+    # In-flight batch requires async commit, default is now synchronous so we opt in to optimistic
+    setup(d, APP_CHECKER_SLOW, manifest(crisp_keys(mcp, port=19314, tracked='["/cr/a.dat"]', latency=2500, mode="optimistic")))
     p = run_bg(d); time.sleep(0.6)               # connect while the 2.5s batch is in flight
     t0 = time.time(); cm = checker(19314, deadline=12.0); blocked_ms = int((time.time()-t0)*1000)
     p.wait(timeout=20); m = mc(mcp)              # m = final MC (incl. the exit-hook batch), cm = MC seen by the probe
@@ -386,7 +389,8 @@ def case_probabilistic_p100_vs_p0(d, mcp):
         for s in ("", ".tmp"):
             Path(mcp + suf + s).unlink(missing_ok=True)
         shutil.rmtree(Path(d) / "pf_dir", ignore_errors=True)   # fresh state per run
-        setup(d, APP_PROB, manifest(crisp_keys(mcp+suf, tracked='["/cr/a.dat"]', latency=1200, prob=prob)))
+        # Probabilistic gating is L3 on top of L2 async base, opt in to optimistic so p=0 baseline is async
+        setup(d, APP_PROB, manifest(crisp_keys(mcp+suf, tracked='["/cr/a.dat"]', latency=1200, prob=prob, mode="optimistic")))
         rc, out = run(d, t=30)
         mm = re.search(r"FSYNC_MS=(\d+)", out)
         return rc, (int(mm.group(1)) if mm else None)
@@ -410,6 +414,23 @@ def case_queue_timeout_fires(d, mcp):
     rc, out = run(d, t=30)
     ok = rc == 1 and "queue timeout exceeded" in out and "APP_RAN" not in out
     return ok, dict(rc=rc, queue_timeout="queue timeout exceeded" in out, app_ran="APP_RAN" in out)
+
+def case_mode_synchronous_explicit(d, mcp):
+    # Verify L1 synchronous mode: each fsync commits inline, no batching
+    # APP_BURST does 30 fsyncs, in sync mode each one bumps MC
+    setup(d, APP_BURST, manifest(crisp_keys(mcp, tracked='["/cr/a.dat"]', mode="synchronous")))
+    rc, out = run(d, t=40); m = mc(mcp)
+    # Expect MC near 30 (one per fsync) plus close and exit hooks, definitely no squashing
+    ok = rc == 0 and "APP_RAN" in out and m is not None and m >= 30 and not has_covered_gt1(out)
+    return ok, dict(rc=rc, mc=m, n_fsyncs=30, batches=n_batches(out), squashed=has_covered_gt1(out))
+
+def case_mode_checker_explicit(d, mcp):
+    # Verify L3 explicit mode value is accepted and runs without error
+    # mode=checker currently behaves like optimistic plus checker_prob gating, this test guards against regressions
+    setup(d, APP_TWO, manifest(crisp_keys(mcp, port=19316, tracked='["/cr/a.dat"]', mode="checker")))
+    rc, out = run(d, t=20); m = mc(mcp); v = (Path(d)/"pf_dir"/"vault.dat").exists()
+    ok = rc == 0 and "APP_RAN" in out and m is not None and m > 0 and v and "FAIL-STOP" not in out
+    return ok, dict(rc=rc, mc=m, vault=v, app_ran="APP_RAN" in out)
 
 def case_mc_monotone_across_runs(d, mcp):
     setup(d, APP_TWO, manifest(crisp_keys(mcp)))
@@ -440,6 +461,8 @@ CASES = [
     ("disabled_noop", case_disabled_noop),
     ("queue_timeout_fires", case_queue_timeout_fires),
     ("mc_monotone_across_runs", case_mc_monotone_across_runs),
+    ("mode_synchronous_explicit", case_mode_synchronous_explicit),
+    ("mode_checker_explicit", case_mode_checker_explicit),
 ]
 
 def cleanup_mc():

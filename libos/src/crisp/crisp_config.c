@@ -138,7 +138,7 @@ int crisp_config_load(void) {
         }
         free(mode);
     } else {
-        g_crisp.mode = 0;  // default optimistic
+        g_crisp.mode = 1;  // default to synchronous, the more pessimistic and security-first choice
     }
 
     if (load_str("sgx.crisp.vault_path", g_crisp.vault_path, sizeof(g_crisp.vault_path)) < 0)

@@ -84,7 +84,7 @@ typedef struct {
     uint64_t queue_timeout_ms;
     int      checker_prob;
     int      checker_api_port;
-    int      mode;  // TODO: L1, sgx.crisp.mode, 0 optimistic (current), 1 synchronous, 2 explicit checker
+    int      mode;  // sgx.crisp.mode value, 0 optimistic, 1 synchronous default, 2 explicit checker
 } crisp_state_t;
 
 extern crisp_state_t g_crisp;
