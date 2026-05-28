@@ -99,11 +99,13 @@ def mc(path):
         return None
     return struct.unpack("<Q", b)[0] if len(b) == 8 else (len(b), b)
 
-def checker(port, deadline=8.0):
+def checker(port, deadline=8.0, expected_min=0):
+    # Protocol: client sends 8-byte expected_min, server blocks until S >= expected_min, replies 8-byte S
     end = time.time() + deadline
     while time.time() < end:
         try:
             with socket.create_connection(("127.0.0.1", port), timeout=4) as s:
+                s.sendall(struct.pack("<Q", expected_min))
                 data = b""
                 while len(data) < 8:
                     c = s.recv(8 - len(data))
@@ -410,7 +412,9 @@ def case_disabled_noop(d, mcp):
                     vault=v, mc=m)
 
 def case_queue_timeout_fires(d, mcp):
-    setup(d, APP_TWO_QT, manifest(crisp_keys(mcp, latency=3000, qtimeout=200)))
+    # Queue timeout only meaningful in optimistic mode where requests sit in the mc-thread queue,
+    # synchronous mode commits inline so the queue is never populated
+    setup(d, APP_TWO_QT, manifest(crisp_keys(mcp, latency=3000, qtimeout=200, mode="optimistic")))
     rc, out = run(d, t=30)
     ok = rc == 1 and "queue timeout exceeded" in out and "APP_RAN" not in out
     return ok, dict(rc=rc, queue_timeout="queue timeout exceeded" in out, app_ran="APP_RAN" in out)
