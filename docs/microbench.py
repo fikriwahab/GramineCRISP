@@ -30,10 +30,12 @@ RUNTIME = "/usr/local/lib/x86_64-linux-gnu/gramine/runtime/glibc"
 
 APP_SRC = r"""
 #include <fcntl.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 static uint64_t now_us(void) {
