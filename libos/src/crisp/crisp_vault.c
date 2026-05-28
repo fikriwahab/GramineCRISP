@@ -65,6 +65,7 @@ done:
 // Save vault atomically.
 // Returns: 0 = OK, -1 = error.
 int crisp_vault_save(const uint8_t* tag, uint64_t local_mc) {
+    CRISP_PROF_BEGIN(VAULT_SAVE);
     // Build struct on stack.
     crisp_vault_t v;
     memcpy(v.magic, CRISP_VAULT_MAGIC, 4);
@@ -117,5 +118,6 @@ int crisp_vault_save(const uint8_t* tag, uint64_t local_mc) {
 out:
     if (ret == 0) log_debug("vault_save: OK, L=%lu", local_mc);
     else          log_error("vault_save: failed");
+    CRISP_PROF_END(VAULT_SAVE);
     return ret;
 }

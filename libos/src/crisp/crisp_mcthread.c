@@ -65,6 +65,18 @@ int crisp_mc_thread_func(void* arg) {
         if (r < 0)
             crisp_fail_stop("commit cycle failed");
 
+        // record batch latency (oldest enqueue time to commit completion) if profiling is on
+        // this is the vulnerability window in optimistic mode, key metric for evaluation
+        if (g_crisp.profile_enabled && enqueue_time > 0) {
+            uint64_t batch_done_us;
+            PalSystemTimeQuery(&batch_done_us);
+            uint64_t batch_dt = batch_done_us - enqueue_time;
+            __atomic_fetch_add(&g_crisp.profile_total_us[CRISP_PROF_BATCH_LATENCY],
+                               batch_dt, __ATOMIC_RELAXED);
+            __atomic_fetch_add(&g_crisp.profile_count[CRISP_PROF_BATCH_LATENCY],
+                               1, __ATOMIC_RELAXED);
+        }
+
         // subtract only what this batch covered so fsyncs that arrived mid-commit
         // stay counted, and the next iteration picks them up without waiting
         lock(&g_crisp.queue_mu);

@@ -26,6 +26,19 @@ struct libos_handle;
 #define CRISP_QUEUE_CAP   64
 #define CRISP_MAX_WAITERS 64
 
+// Profiling slots for sgx.crisp.profile instrumentation, off by default
+enum {
+    CRISP_PROF_COMPUTE_TAG = 0,
+    CRISP_PROF_VAULT_SAVE,
+    CRISP_PROF_MC_INCREMENT,
+    CRISP_PROF_COMMIT_NOW,
+    CRISP_PROF_BATCH_LATENCY,
+    CRISP_PROF_FSYNC_HOOK,
+    CRISP_PROF_CLOSE_HOOK,
+    CRISP_PROF_EXIT_HOOK,
+    CRISP_PROF_NUM_SLOTS,
+};
+
 // On-disk vault format. Stored as a Protected File.
 typedef struct {
     char     magic[4];                  // "CRSP"
@@ -85,9 +98,38 @@ typedef struct {
     int      checker_prob;
     int      checker_api_port;
     int      mode;  // sgx.crisp.mode value, 0 optimistic, 1 synchronous default, 2 explicit checker
+
+    // Profiling, gated by sgx.crisp.profile manifest flag, default off so the macros expand to a single branch
+    bool     profile_enabled;
+    uint64_t profile_total_us[CRISP_PROF_NUM_SLOTS];
+    uint64_t profile_count[CRISP_PROF_NUM_SLOTS];
 } crisp_state_t;
 
 extern crisp_state_t g_crisp;
+
+// Profiling helpers, expand to a single runtime branch when profile is off
+// Usage:
+//   CRISP_PROF_BEGIN(COMPUTE_TAG);
+//   ... code under measurement ...
+//   CRISP_PROF_END(COMPUTE_TAG);
+// Slot must be a bare identifier matching one of the CRISP_PROF_* enum values
+#define CRISP_PROF_BEGIN(slot_name)                                                  \
+    uint64_t __crisp_prof_t0_##slot_name = 0;                                        \
+    if (g_crisp.profile_enabled)                                                     \
+        PalSystemTimeQuery(&__crisp_prof_t0_##slot_name)
+
+#define CRISP_PROF_END(slot_name)                                                    \
+    do {                                                                             \
+        if (g_crisp.profile_enabled) {                                               \
+            uint64_t __crisp_prof_t1 = 0;                                            \
+            PalSystemTimeQuery(&__crisp_prof_t1);                                    \
+            uint64_t __crisp_prof_dt = __crisp_prof_t1 - __crisp_prof_t0_##slot_name;\
+            __atomic_fetch_add(&g_crisp.profile_total_us[CRISP_PROF_##slot_name],    \
+                               __crisp_prof_dt, __ATOMIC_RELAXED);                   \
+            __atomic_fetch_add(&g_crisp.profile_count[CRISP_PROF_##slot_name],       \
+                               1, __ATOMIC_RELAXED);                                 \
+        }                                                                            \
+    } while (0)
 
 noreturn void crisp_fail_stop(const char* reason);
 
@@ -98,7 +140,7 @@ int  crisp_spawn_checker_thread(void);
 int  crisp_checker_listen(void);
 int  crisp_config_load(void);
 int  crisp_on_fsync(void);
-int  crisp_commit_now(void);  // TODO: L1, inline commit cycle for synchronous mode
+int  crisp_commit_now(void);  // inline commit cycle for synchronous mode and mc-thread
 int  crisp_on_close(void);
 int  crisp_close_handle(struct libos_handle* handle);
 void crisp_on_exit(void);
@@ -114,5 +156,6 @@ int  crisp_flush_pf_by_path(const char* path);
 
 int crisp_mc_thread_func(void* arg);
 int crisp_checker_api_func(void* arg);
+void crisp_profile_dump(void);
 
 #endif

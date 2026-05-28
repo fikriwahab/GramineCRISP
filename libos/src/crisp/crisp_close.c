@@ -31,18 +31,28 @@ int crisp_close_handle(struct libos_handle* handle) {
 
 // Close hook: enqueue the post-close-flush state, then block until committed
 int crisp_on_close(void) {
-    if (!g_crisp.enabled)
+    CRISP_PROF_BEGIN(CLOSE_HOOK);
+    if (!g_crisp.enabled) {
+        CRISP_PROF_END(CLOSE_HOOK);
         return 0;
+    }
 
-    if (__atomic_load_n(&g_crisp.halted, __ATOMIC_ACQUIRE))
+    if (__atomic_load_n(&g_crisp.halted, __ATOMIC_ACQUIRE)) {
+        CRISP_PROF_END(CLOSE_HOOK);
         return -ENOTRECOVERABLE;
+    }
 
-    if (g_crisp.mode == 1)
-        return crisp_commit_now();
+    if (g_crisp.mode == 1) {
+        int r = crisp_commit_now();
+        CRISP_PROF_END(CLOSE_HOOK);
+        return r;
+    }
 
     int ret = crisp_on_fsync();
-    if (ret < 0)
+    if (ret < 0) {
+        CRISP_PROF_END(CLOSE_HOOK);
         return ret;
+    }
 
     ret = crisp_drain_and_wait();
     if (ret < 0) {
@@ -50,17 +60,23 @@ int crisp_on_close(void) {
         snprintf(msg, sizeof(msg), "crisp_on_close: drain_and_wait failed: %d", ret);
         crisp_fail_stop(msg);
     }
+    CRISP_PROF_END(CLOSE_HOOK);
     return 0;
 }
 
 // Exit hook: force-flush every tracked PF that exists (MAC fresh), enqueue, block until committed
 // Called before process exit cleanup, the close chain has not run yet
 void crisp_on_exit(void) {
-    if (!g_crisp.enabled)
+    CRISP_PROF_BEGIN(EXIT_HOOK);
+    if (!g_crisp.enabled) {
+        CRISP_PROF_END(EXIT_HOOK);
         return;
+    }
 
-    if (__atomic_load_n(&g_crisp.halted, __ATOMIC_ACQUIRE))
+    if (__atomic_load_n(&g_crisp.halted, __ATOMIC_ACQUIRE)) {
+        CRISP_PROF_END(EXIT_HOOK);
         return;
+    }
 
     for (int i = 0; i < g_crisp.pf_count; i++) {
         if (crisp_flush_pf_by_path(g_crisp.pf_paths[i]) < 0) {
@@ -75,6 +91,8 @@ void crisp_on_exit(void) {
         int ret = crisp_commit_now();
         if (ret < 0)
             crisp_fail_stop("crisp_on_exit: synchronous commit failed");
+        CRISP_PROF_END(EXIT_HOOK);
+        crisp_profile_dump();
         return;
     }
 
@@ -88,4 +106,6 @@ void crisp_on_exit(void) {
         snprintf(msg, sizeof(msg), "crisp_on_exit: drain_and_wait failed: %d", ret);
         crisp_fail_stop(msg);
     }
+    CRISP_PROF_END(EXIT_HOOK);
+    crisp_profile_dump();
 }

@@ -108,7 +108,7 @@ int crisp_config_load(void) {
     if (load_int("sgx.crisp.rate_limit_ms", 0, CRISP_MS_MAX, &v) < 0)
         return -1;
     g_crisp.rate_limit_ms = (uint64_t)v;
-    if (load_int("sgx.crisp.queue_timeout_ms", 0, CRISP_MS_MAX, &v) < 0)  // disabled by default, per the paper
+    if (load_int("sgx.crisp.queue_timeout_ms", 0, CRISP_MS_MAX, &v) < 0)  // disabled by default
         return -1;
     g_crisp.queue_timeout_ms = (uint64_t)v;
     if (load_int("sgx.crisp.checker_prob", 0, 100, &v) < 0)
@@ -117,6 +117,13 @@ int crisp_config_load(void) {
     if (load_int("sgx.crisp.checker_api_port", 0, 65535, &v) < 0)
         return -1;
     g_crisp.checker_api_port = (int)v;
+
+    bool profile = false;
+    if (toml_bool_in(g_manifest_root, "sgx.crisp.profile", false, &profile) < 0) {
+        log_error("crisp_config: sgx.crisp.profile is not a valid boolean");
+        return -1;
+    }
+    g_crisp.profile_enabled = profile;
 // TODO: replace numeric mode values with named constants (CRISP_MODE_*) once defined.    
     char* mode = NULL;
     if (toml_string_in(g_manifest_root, "sgx.crisp.mode", &mode) < 0) {

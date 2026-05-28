@@ -15,6 +15,7 @@
 // Safe to call from app thread or mc-thread.
 // Returns 0 on success, negative errno on failure — caller is responsible for fail-stop.
 int crisp_commit_now(void) {
+    CRISP_PROF_BEGIN(COMMIT_NOW);
     uint8_t tag[CRISP_TAG_SIZE];
     uint64_t new_L  = 0;
     uint64_t new_mc = 0;
@@ -55,6 +56,7 @@ out:
     unlock(&g_crisp.queue_mu);
 
     crisp_wake_all_waiters();
+    CRISP_PROF_END(COMMIT_NOW);
     return ret;
 }
 
@@ -63,14 +65,18 @@ out:
 // Probabilistic checker: checker_prob% of fsyncs block until committed, which
 // bounds batch size
 int crisp_on_fsync(void) {
-    if (__atomic_load_n(&g_crisp.halted, __ATOMIC_ACQUIRE))
+    CRISP_PROF_BEGIN(FSYNC_HOOK);
+    if (__atomic_load_n(&g_crisp.halted, __ATOMIC_ACQUIRE)) {
+        CRISP_PROF_END(FSYNC_HOOK);
         return -ENOTRECOVERABLE;
+    }
 
-    // L1: synchronous mode — commit inline, skip enqueue
+    // L1: synchronous mode, commit inline, skip enqueue
     if (g_crisp.mode == 1) {
         int r = crisp_commit_now();
         if (r < 0)
             crisp_fail_stop("synchronous fsync commit failed");
+        CRISP_PROF_END(FSYNC_HOOK);
         return 0;
     }
 
@@ -84,8 +90,8 @@ int crisp_on_fsync(void) {
     if (g_crisp.mc_wakeup_event)
         PalEventSet(g_crisp.mc_wakeup_event);
 
-    // L3: probabilistic checker per paper — each fsync independently triggers
-    // with checker_prob% probability; adversary cannot predict check timing
+    // L3 probabilistic checker, each fsync independently triggers with
+    // checker_prob percent probability so adversary cannot predict check timing
     if (g_crisp.checker_prob > 0) {
         static uint64_t rng_state = 0;
         uint64_t s = __atomic_load_n(&rng_state, __ATOMIC_RELAXED);
@@ -101,6 +107,7 @@ int crisp_on_fsync(void) {
             crisp_drain_and_wait();
     }
 
+    CRISP_PROF_END(FSYNC_HOOK);
     return 0;
 }
 

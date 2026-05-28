@@ -91,6 +91,7 @@ int crisp_mc_read(uint64_t* value) {
 
 // Simulate hardware latency, increment, atomic write+rename.
 int crisp_mc_increment(uint64_t* new_value) {
+    CRISP_PROF_BEGIN(MC_INCREMENT);
     // wait on the dedicated never-signaled event so we don't steal the mc-thread's
     // wakeup, and do it before taking the lock so concurrent reads aren't blocked
     if (g_crisp.mc_latency_ms > 0) {
@@ -153,5 +154,6 @@ int crisp_mc_increment(uint64_t* new_value) {
 
     log_debug("crisp_mc_increment: %lu -> %lu", snapshot - 1, snapshot);
     unlock(&mc_mu);
+    CRISP_PROF_END(MC_INCREMENT);
     return 0;
 }

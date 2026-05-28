@@ -91,6 +91,7 @@ GramineManifestSchema = Schema({
             'checker_api_port': int,
             'checker_prob': int,
             'mode': Any('optimistic', 'synchronous', 'checker'),
+            'profile': bool,
         },
         'debug': bool,
         'edmm_enable': bool,

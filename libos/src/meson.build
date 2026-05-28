@@ -25,6 +25,7 @@ libos_sources = files(
     'crisp/crisp_checker_api.c',
     'crisp/crisp_tag.c',
     'crisp/crisp_config.c',
+    'crisp/crisp_profile.c',
     'fs/chroot/allowed.c',
     'fs/chroot/encrypted.c',
     'fs/chroot/file_check_policy.c',

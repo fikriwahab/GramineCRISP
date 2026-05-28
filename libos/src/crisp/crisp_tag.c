@@ -42,6 +42,7 @@ static int extract_pf_mac(const char* path, uint8_t* mac_out) {
 // contributes a zero MAC, an existing-but-unreadable one is an integrity failure that aborts)
 // tag_lock keeps the loop a consistent snapshot even while PFs are flushed concurrently
 int crisp_compute_global_tag(uint8_t* tag_out) {
+    CRISP_PROF_BEGIN(COMPUTE_TAG);
     LIB_SHA256_CONTEXT ctx;
     lib_SHA256Init(&ctx);
 
@@ -65,6 +66,7 @@ int crisp_compute_global_tag(uint8_t* tag_out) {
 
     lib_SHA256Final(&ctx, tag_out);
     log_debug("tag: computed over %d PFs", g_crisp.pf_count);
+    CRISP_PROF_END(COMPUTE_TAG);
     return 0;
 }
 
