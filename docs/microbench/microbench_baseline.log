@@ -1,0 +1,4 @@
+FAIL mode=optimistic prob=0 buf=512 iter=2: Command '['gramine-sgx', 'app', '512', '16777216']' timed out after 600 seconds
+FAIL mode=checker prob=0 buf=512 iter=0: Command '['gramine-sgx', 'app', '512', '16777216']' timed out after 600 seconds
+FAIL mode=checker prob=0 buf=512 iter=1: Command '['gramine-sgx', 'app', '512', '16777216']' timed out after 600 seconds
+FAIL mode=checker prob=0 buf=512 iter=2: Command '['gramine-sgx', 'app', '512', '16777216']' timed out after 600 seconds

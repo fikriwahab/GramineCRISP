@@ -1,0 +1,21 @@
+# mode=['disabled', 'synchronous', 'optimistic', 'checker'] buffers=[1024, 4096, 16384] iter=1 file_size=4MB prob_sweep=[0, 10, 100] gramine=gramine-sgx
+OK mode=disabled prob=0 buf=1024 iter=0 -> 189.37 kB/s in 21629.9 ms
+OK mode=disabled prob=0 buf=4096 iter=0 -> 718.31 kB/s in 5702.3 ms
+OK mode=disabled prob=0 buf=16384 iter=0 -> 2870.62 kB/s in 1426.9 ms
+OK mode=synchronous prob=0 buf=1024 iter=0 -> 59.88 kB/s in 68407.2 ms
+OK mode=synchronous prob=0 buf=4096 iter=0 -> 235.85 kB/s in 17366.7 ms
+OK mode=synchronous prob=0 buf=16384 iter=0 -> 917.11 kB/s in 4466.2 ms
+OK mode=optimistic prob=0 buf=1024 iter=0 -> 129.33 kB/s in 31671.1 ms
+OK mode=optimistic prob=0 buf=4096 iter=0 -> 402.47 kB/s in 10177.1 ms
+OK mode=optimistic prob=0 buf=16384 iter=0 -> 1555.74 kB/s in 2632.8 ms
+OK mode=checker prob=0 buf=1024 iter=0 -> 129.78 kB/s in 31561.6 ms
+OK mode=checker prob=0 buf=4096 iter=0 -> 444.67 kB/s in 9211.2 ms
+OK mode=checker prob=0 buf=16384 iter=0 -> 1530.73 kB/s in 2675.8 ms
+OK mode=checker prob=10 buf=1024 iter=0 -> 104.64 kB/s in 39144.3 ms
+OK mode=checker prob=10 buf=4096 iter=0 -> 357.95 kB/s in 11443.0 ms
+OK mode=checker prob=10 buf=16384 iter=0 -> 1375.03 kB/s in 2978.8 ms
+OK mode=checker prob=100 buf=1024 iter=0 -> 56.26 kB/s in 72799.9 ms
+OK mode=checker prob=100 buf=4096 iter=0 -> 224.82 kB/s in 18219.2 ms
+OK mode=checker prob=100 buf=16384 iter=0 -> 844.00 kB/s in 4853.1 ms
+wrote 18 rows to microbench/results_quick.csv
+wrote 120 rows to microbench/profile_quick.csv
