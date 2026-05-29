@@ -1,7 +1,0 @@
-mode,checker_prob,iteration,n_ops,elapsed_us,ops_per_sec
-disabled,0,0,1000,4755847,210.27
-synchronous,0,0,1000,17278343,57.88
-optimistic,0,0,1000,8187726,122.13
-checker,0,0,1000,7873578,127.01
-checker,10,0,1000,8690691,115.07
-checker,100,0,1000,16943646,59.02

@@ -1,9 +1,0 @@
-# modes=['disabled', 'synchronous', 'optimistic', 'checker'] n_ops=1000 iter=1 prob_sweep=[0, 10, 100] gramine=gramine-sgx
-OK mode=disabled prob=0 iter=0 -> 210.27 ops/s in 4755.8 ms
-OK mode=synchronous prob=0 iter=0 -> 57.88 ops/s in 17278.3 ms
-OK mode=optimistic prob=0 iter=0 -> 122.13 ops/s in 8187.7 ms
-OK mode=checker prob=0 iter=0 -> 127.01 ops/s in 7873.6 ms
-OK mode=checker prob=10 iter=0 -> 115.07 ops/s in 8690.7 ms
-OK mode=checker prob=100 iter=0 -> 59.02 ops/s in 16943.6 ms
-wrote 6 rows to microbench/redis_results.csv
-wrote 40 rows to microbench/redis_profile.csv
