@@ -1,0 +1,9 @@
+# modes=['disabled', 'synchronous', 'optimistic', 'checker'] n_ops=1000 payload=32 iter=1 prob_sweep=[0, 10, 100] gramine=gramine-sgx
+OK mode=disabled prob=0 iter=0 port=16500 -> 206.70 ops/s in 4841.2 ms
+OK mode=synchronous prob=0 iter=0 port=16500 -> 61.21 ops/s in 16340.2 ms
+OK mode=optimistic prob=0 iter=0 port=16500 -> 134.21 ops/s in 7453.2 ms
+OK mode=checker prob=0 iter=0 port=16500 -> 141.28 ops/s in 7080.4 ms
+OK mode=checker prob=10 iter=0 port=16500 -> 117.44 ops/s in 8516.5 ms
+OK mode=checker prob=100 iter=0 port=16500 -> 59.06 ops/s in 16934.4 ms
+wrote 6 rows to microbench/redis_results.csv
+wrote 40 rows to microbench/redis_profile.csv
