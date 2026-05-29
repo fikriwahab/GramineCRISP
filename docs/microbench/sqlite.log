@@ -1,0 +1,9 @@
+# modes=['disabled', 'synchronous', 'optimistic', 'checker'] n_txn=500 iter=1 prob_sweep=[0, 10, 100] gramine=gramine-sgx
+OK mode=disabled prob=0 iter=0 -> 57.70 txn/s in 8665.3 ms
+OK mode=synchronous prob=0 iter=0 -> 10.76 txn/s in 46459.2 ms
+OK mode=optimistic prob=0 iter=0 -> 15.26 txn/s in 32774.4 ms
+OK mode=checker prob=0 iter=0 -> 15.27 txn/s in 32738.9 ms
+OK mode=checker prob=10 iter=0 -> 14.33 txn/s in 34889.1 ms
+OK mode=checker prob=100 iter=0 -> 10.64 txn/s in 46983.2 ms
+wrote 6 rows to microbench/sqlite_results.csv
+wrote 40 rows to microbench/sqlite_profile.csv

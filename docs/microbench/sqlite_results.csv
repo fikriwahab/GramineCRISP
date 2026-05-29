@@ -1,0 +1,7 @@
+mode,checker_prob,iteration,n_txn,elapsed_us,txn_per_sec
+disabled,0,0,500,8665252,57.7
+synchronous,0,0,500,46459245,10.76
+optimistic,0,0,500,32774435,15.26
+checker,0,0,500,32738874,15.27
+checker,10,0,500,34889100,14.33
+checker,100,0,500,46983202,10.64
