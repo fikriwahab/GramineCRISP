@@ -26,3 +26,4 @@ sgx.trusted_files = [
   "file:main",
   "file:{{ gramine.runtimedir() }}/",
 ]
+sgx.crisp.profile = true

@@ -1,0 +1,96 @@
+PASS  fresh_install
+    rc = 0
+    batches = 5
+    mc = 5
+    vault = True
+PASS  clean_restart
+    rc = 0
+    verified = True
+    mc = 10
+PASS  fsync_commits
+    rc = 0
+    batches = 3
+    mc = 3
+PASS  fdatasync_forwards
+    rc = 0
+    batches = 3
+    mc = 3
+PASS  close_synchronous
+    rc = 0
+    close_ms = 2017
+PASS  close_range_commits
+    mc = 1
+    checker = 1
+    vault = True
+PASS  dup2_overwrite_commits
+    rc = 0
+    mc = 4
+    vault = True
+PASS  execve_cloexec_commits
+    mc = 1
+    checker = 1
+    vault = True
+    child = True
+PASS  exit_commits
+    rc = 0
+    mc = 1
+    vault = True
+    restart_ok = True
+PASS  dir_fsync_unlink_committed
+    before = 5
+    after = 7
+    checker_during = 6
+    restart_ok = True
+PASS  non_pf_fsync_noop
+    rc = 0
+    fsync_stdout = FSYNC_STDOUT_RC=-1 APP_RAN
+    mc = 1
+    batches = 1
+PASS  tag_path_order_independent
+    rc = 0
+    verified = True
+PASS  vault_is_encrypted
+    vault_bytes = 4096
+    plaintext_magic_present = False
+PASS  batch_squash
+    rc = 0
+    mc = 12
+    n_fsyncs = 30
+    batches = 24
+    squashed = True
+PASS  checker_returns_mc
+    checker = 2
+    mc = 2
+PASS  checker_blocks_on_pending
+    checker_returned = 1
+    mc_final = 3
+    blocked_ms = 2291
+PASS  probabilistic_p100_vs_p0
+    fsync_ms_p0 = 4
+    fsync_ms_p100 = 1212
+    rc0 = 0
+    rc1 = 0
+PASS  disabled_noop
+    rc = 0
+    crisp_logs = False
+    checker_open = False
+    vault = False
+    mc = None
+PASS  queue_timeout_fires
+    rc = 1
+    queue_timeout = True
+    app_ran = False
+PASS  mc_monotone_across_runs
+    mc_values = [5, 10, 15]
+PASS  mode_synchronous_explicit
+    rc = 0
+    mc = 32
+    n_fsyncs = 30
+    batches = 32
+    squashed = False
+PASS  mode_checker_explicit
+    rc = 0
+    mc = 5
+    vault = True
+    app_ran = True
+summary pass=22 fail=0
