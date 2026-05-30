@@ -5,6 +5,7 @@
 
 
 #include "api.h"
+#include "crisp/crisp.h"
 #include "libos_fs.h"
 #include "libos_handle.h"
 #include "libos_internal.h"
@@ -675,6 +676,12 @@ ssize_t do_sendmsg(struct libos_handle* handle, struct iovec* iov, size_t iov_le
     }
     if (!WITHIN_MASK(flags, MSG_NOSIGNAL | MSG_DONTWAIT | MSG_MORE)) {
         return -EOPNOTSUPP;
+    }
+
+    // Network egress gating, block externalization until any pending CRISP commit done
+    int gate_ret = crisp_gate_check();
+    if (gate_ret < 0) {
+        return gate_ret;
     }
 
     /* Note this only indicates whether this operation was requested to be nonblocking. If it's

@@ -36,7 +36,16 @@ enum {
     CRISP_PROF_FSYNC_HOOK,
     CRISP_PROF_CLOSE_HOOK,
     CRISP_PROF_EXIT_HOOK,
+    CRISP_PROF_GATE_HOOK,
     CRISP_PROF_NUM_SLOTS,
+};
+
+// Network egress gating policy values for sgx.crisp.gate_policy
+enum {
+    CRISP_GATE_NONE = 0,   // default, gating disabled, passthrough
+    CRISP_GATE_BLOCK,      // block sendto until commit done (S >= L, queue empty)
+    CRISP_GATE_WARN,       // log warning on pending state, allow send (audit mode)
+    CRISP_GATE_DROP,       // return -ECONNREFUSED if pending state (paranoid mode)
 };
 
 // On-disk vault format. Stored as a Protected File.
@@ -99,6 +108,11 @@ typedef struct {
     int      checker_api_port;
     int      mode;  // sgx.crisp.mode value, 0 optimistic, 1 synchronous default, 2 explicit checker
 
+    // Network egress gating, default off so existing apps unaffected
+    bool     network_gate;          // sgx.crisp.network_gate, master switch
+    int      gate_policy;           // CRISP_GATE_NONE/BLOCK/WARN/DROP
+    uint64_t gate_timeout_ms;       // sgx.crisp.gate_timeout_ms, max block duration before fail-stop
+
     // Profiling, gated by sgx.crisp.profile manifest flag, default off so the macros expand to a single branch
     bool     profile_enabled;
     uint64_t profile_total_us[CRISP_PROF_NUM_SLOTS];
@@ -157,5 +171,9 @@ int  crisp_flush_pf_by_path(const char* path);
 int crisp_mc_thread_func(void* arg);
 int crisp_checker_api_func(void* arg);
 void crisp_profile_dump(void);
+
+// Network egress gating, called from socket send syscalls
+// Returns 0 if send may proceed, negative errno to fail the syscall
+int crisp_gate_check(void);
 
 #endif

@@ -164,6 +164,43 @@ int crisp_config_load(void) {
     if (load_tracked_pfs() < 0)
         return -1;
 
+    // Network egress gating, all keys optional, default to off
+    bool ngate = false;
+    if (toml_bool_in(g_manifest_root, "sgx.crisp.network_gate", false, &ngate) < 0) {
+        log_error("crisp_config: sgx.crisp.network_gate is not a valid boolean");
+        return -1;
+    }
+    g_crisp.network_gate = ngate;
+
+    char* gate_policy_str = NULL;
+    if (toml_string_in(g_manifest_root, "sgx.crisp.gate_policy", &gate_policy_str) < 0) {
+        log_error("crisp_config: sgx.crisp.gate_policy is not a valid string");
+        return -1;
+    }
+    if (gate_policy_str) {
+        if (strcmp(gate_policy_str, "none") == 0)        g_crisp.gate_policy = CRISP_GATE_NONE;
+        else if (strcmp(gate_policy_str, "block") == 0)  g_crisp.gate_policy = CRISP_GATE_BLOCK;
+        else if (strcmp(gate_policy_str, "warn") == 0)   g_crisp.gate_policy = CRISP_GATE_WARN;
+        else if (strcmp(gate_policy_str, "drop") == 0)   g_crisp.gate_policy = CRISP_GATE_DROP;
+        else {
+            log_error("crisp_config: sgx.crisp.gate_policy must be one of none|block|warn|drop");
+            free(gate_policy_str);
+            return -1;
+        }
+        free(gate_policy_str);
+    } else {
+        g_crisp.gate_policy = CRISP_GATE_NONE;
+    }
+
+    if (load_int("sgx.crisp.gate_timeout_ms", 0, CRISP_MS_MAX, &v) < 0)
+        return -1;
+    g_crisp.gate_timeout_ms = v == 0 ? 30000 : (uint64_t)v;  // default 30s if unspecified
+
+    // sanity, if gate_policy is non-none, network_gate should be true
+    if (g_crisp.gate_policy != CRISP_GATE_NONE && !g_crisp.network_gate) {
+        log_warning("crisp_config: gate_policy set but network_gate is false, gating disabled");
+    }
+
     // the vault must not sit on (or share a .tmp name with) a tracked PF, otherwise CRISP clobbers
     // the app's data when it writes the vault, then fail-stops on a tag mismatch at the next restart
     char vault_tmp[300];
