@@ -1,0 +1,9 @@
+# modes=['optimistic'] n_ops=1000 payload=32 iter=3 prob_sweep=None gate_policies=['none', 'block'] gramine=gramine-sgx
+OK mode=optimistic prob=0 gate=none iter=0 port=16500 -> 134.10 ops/s in 7460.0 ms
+OK mode=optimistic prob=0 gate=none iter=1 port=16510 -> 140.73 ops/s in 7108.8 ms
+OK mode=optimistic prob=0 gate=none iter=2 port=16520 -> 133.26 ops/s in 7506.7 ms
+OK mode=optimistic prob=0 gate=block iter=0 port=16500 -> 59.47 ops/s in 16817.8 ms
+OK mode=optimistic prob=0 gate=block iter=1 port=16510 -> 60.23 ops/s in 16604.5 ms
+OK mode=optimistic prob=0 gate=block iter=2 port=16520 -> 62.64 ops/s in 15966.4 ms
+wrote 6 rows to microbench/redis_gate_results.csv
+wrote 54 rows to microbench/redis_gate_profile.csv

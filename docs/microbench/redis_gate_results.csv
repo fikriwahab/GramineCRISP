@@ -1,0 +1,7 @@
+mode,checker_prob,gate_policy,iteration,n_ops,payload_bytes,elapsed_us,ops_per_sec
+optimistic,0,none,0,1000,32,7459990,134.1
+optimistic,0,none,1,1000,32,7108762,140.73
+optimistic,0,none,2,1000,32,7506740,133.26
+optimistic,0,block,0,1000,32,16817840,59.47
+optimistic,0,block,1,1000,32,16604491,60.23
+optimistic,0,block,2,1000,32,15966442,62.64

@@ -1,23 +1,20 @@
 #!/usr/bin/env python3
-"""Real Redis benchmark under CRISP modes.
+"""Real SPIRE-server-like benchmark: embedded Go binary with TCP listener.
 
-Uses actual Redis 6.0.5 (built via Gramine CI-Examples/redis), runs server
-inside Gramine SGX with AOF persistence (appendonly=yes, appendfsync=always),
-drives load via redis-benchmark, measures throughput, captures CRISP profile
-on graceful shutdown.
+Linked against SPIRE v1.15.1's sqlstore package. Workload: client opens TCP,
+sends JSON registration entry requests in a loop, server creates entries via
+ds.CreateRegistrationEntry then responds with entry_id.
 
-Prerequisite (one-time setup on VM):
-    cd ~/gramine/CI-Examples/redis
-    make SGX=1
-    # This downloads + builds Redis 6.0.5 and the example manifest.
-    # Result: redis-server, src/src/redis-cli, src/src/redis-benchmark
+Network egress is REAL (TCP send/write), so CRISP network gating actually fires.
+Mirrors redis.py pattern (manifest gen + mode + gate-policy sweep).
 
-Run benchmark with:
-    GRAMINE_CMD=gramine-sgx python3 redis.py --out microbench/redis.csv
+Prerequisite: ~/spire-server-bench/spire-server-bench built (see /tmp/spire_server_bench
+source on local).
 """
 
 import argparse
 import csv
+import json
 import os
 import re
 import socket
@@ -31,20 +28,15 @@ GRAMINE_CMD = os.environ.get("GRAMINE_CMD", "gramine-direct")
 IS_SGX = GRAMINE_CMD == "gramine-sgx"
 KEY = "ff000000000000000000000000000000"
 RUNTIME = "/usr/local/lib/x86_64-linux-gnu/gramine/runtime/glibc"
-
-REDIS_DIR = Path.home() / "gramine" / "CI-Examples" / "redis"
-REDIS_SERVER_SRC = REDIS_DIR / "redis-server"
-REDIS_CLI = REDIS_DIR / "src" / "src" / "redis-cli"
-REDIS_BENCH = REDIS_DIR / "src" / "src" / "redis-benchmark"
+ARCH_LIBDIR = "/lib/x86_64-linux-gnu"
+BENCH_BIN = Path.home() / "spire-server-bench" / "spire-server-bench"
 
 MANIFEST_TEMPLATE = """
-libos.entrypoint = "/redis-server"
+libos.entrypoint = "/spire-server-bench"
 loader.log_level = "error"
-loader.argv = ["redis-server", "--save", "", "--appendonly", "yes",
-               "--appendfsync", "always", "--dir", "/cr",
-               "--bind", "127.0.0.1", "--protected-mode", "no",
-               "--port", "{port}"]
-loader.env.LD_LIBRARY_PATH = "/lib"
+loader.argv = ["spire-server-bench", "-port", "{port}", "-db", "/cr/spire.sqlite3"]
+loader.env.LD_LIBRARY_PATH = "/lib:{arch_libdir}"
+loader.env.HOME = "/home/azureuser"
 
 sys.enable_sigterm_injection = true
 
@@ -52,25 +44,27 @@ fs.insecure__keys.default = "{key}"
 
 fs.mounts = [
   {{ path = "/lib", uri = "file:{runtime}" }},
-  {{ path = "/redis-server", uri = "file:redis-server" }},
+  {{ path = "{arch_libdir}", uri = "file:{arch_libdir}" }},
+  {{ path = "/spire-server-bench", uri = "file:spire-server-bench" }},
   {{ type = "encrypted", path = "/cr", uri = "file:pf_dir" }},
 ]
 
 {crisp_block}
 sgx.debug = true
-sgx.enclave_size = "1024M"
+sgx.enclave_size = "8G"
 {max_threads}
 sgx.trusted_files = [
-  "file:redis-server",
+  "file:spire-server-bench",
   "file:{runtime}/",
+  "file:{arch_libdir}/",
 ]
 """
 
 CSV_LINE_RE = re.compile(r"\[CRISP CSV\] (.+?)$", re.MULTILINE)
-BENCH_RE = re.compile(r"([\d.]+) requests per second")
+LISTEN_RE = re.compile(r"SPIRE_SERVER_LISTENING port=(\d+)")
 
 
-def find_free_port(start=16500):
+def find_free_port(start=18099):
     for port in range(start, start + 200):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             try:
@@ -88,7 +82,7 @@ def crisp_block_for(mode, mc_path, prob, gate_policy="none"):
         "sgx.crisp.enabled = true\n"
         f'sgx.crisp.vault_path = "/cr/vault.dat"\n'
         f'sgx.crisp.mc_path = "{mc_path}"\n'
-        'sgx.crisp.tracked_pfs = ["/cr/appendonly.aof"]\n'
+        'sgx.crisp.tracked_pfs = ["/cr/spire.sqlite3"]\n'
         f'sgx.crisp.mode = "{mode}"\n'
         "sgx.crisp.profile = true\n"
     )
@@ -102,83 +96,79 @@ def crisp_block_for(mode, mc_path, prob, gate_policy="none"):
 
 
 def setup_workdir(workdir, mode, mc_path, port, prob=None, gate_policy="none"):
-    # Symlink redis-server into workdir so manifest can reference it
-    server_link = workdir / "redis-server"
-    if not server_link.exists():
-        server_link.symlink_to(REDIS_SERVER_SRC)
+    bench_link = workdir / "spire-server-bench"
+    if not bench_link.exists():
+        bench_link.symlink_to(BENCH_BIN)
     (workdir / "pf_dir").mkdir(exist_ok=True)
-
-    max_threads = "sgx.max_threads = 16\n" if IS_SGX else ""
+    max_threads = "sgx.max_threads = 32\n" if IS_SGX else ""
     manifest = MANIFEST_TEMPLATE.format(
-        key=KEY, runtime=RUNTIME, port=port,
+        key=KEY, runtime=RUNTIME, arch_libdir=ARCH_LIBDIR, port=port,
         crisp_block=crisp_block_for(mode, mc_path, prob, gate_policy),
         max_threads=max_threads,
     )
-    (workdir / "redis-server.manifest.template").write_text(manifest)
-    subprocess.run(["gramine-manifest", "redis-server.manifest.template",
-                    "redis-server.manifest"],
-                   cwd=workdir, check=True,
-                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    (workdir / "app.manifest.template").write_text(manifest)
+    subprocess.run(["gramine-manifest", "app.manifest.template", "app.manifest"],
+                   cwd=workdir, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if IS_SGX:
-        subprocess.run(["gramine-sgx-sign", "--manifest", "redis-server.manifest",
-                        "--output", "redis-server.manifest.sgx"],
-                       cwd=workdir, check=True,
-                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(["gramine-sgx-sign", "--manifest", "app.manifest",
+                        "--output", "app.manifest.sgx"],
+                       cwd=workdir, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
-def wait_server_ready(port, deadline_sec=30):
+def wait_listen(server_proc, port, deadline_sec):
     end = time.time() + deadline_sec
     while time.time() < end:
         try:
-            r = subprocess.run([str(REDIS_CLI), "-p", str(port), "PING"],
-                               capture_output=True, text=True, timeout=2)
-            if "PONG" in r.stdout:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(1)
+                s.connect(("127.0.0.1", port))
                 return True
-        except (subprocess.TimeoutExpired, FileNotFoundError):
-            pass
-        time.sleep(0.3)
+        except (ConnectionRefusedError, OSError, socket.timeout):
+            time.sleep(0.3)
     return False
 
 
-def run_one(workdir, mode, prob, n_ops, payload_bytes, port, timeout):
-    # Start server in background
+def drive_workload(port, n_ops):
+    """Single connection, n_ops sequential requests."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(30)
+    s.connect(("127.0.0.1", port))
+    t0 = time.time()
+    f = s.makefile("rwb")
+    for i in range(n_ops):
+        req = json.dumps({
+            "parent_id": f"spiffe://example.org/agent{i}",
+            "spiffe_id": f"spiffe://example.org/workload{i}",
+            "selector": f"uid:{i}",
+        }) + "\n"
+        f.write(req.encode())
+        f.flush()
+        resp_line = f.readline()
+        if not resp_line:
+            raise RuntimeError(f"empty response at op {i}")
+    elapsed = time.time() - t0
+    s.close()
+    return elapsed
+
+
+def run_one(workdir, mode, prob, n_ops, port, timeout):
     server_proc = subprocess.Popen(
-        [GRAMINE_CMD, "redis-server"],
+        [GRAMINE_CMD, "app"],
         cwd=workdir, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
     )
-
     try:
-        if not wait_server_ready(port, deadline_sec=60 if IS_SGX else 15):
-            raise RuntimeError("redis-server did not respond to PING within deadline")
-
-        # Drive workload via redis-benchmark, -P 1 disables pipelining so each
-        # SET issues its own AOF fsync, mirroring durable per-op behavior
-        bench_t0 = time.time()
-        bench = subprocess.run(
-            [str(REDIS_BENCH), "-h", "127.0.0.1", "-p", str(port),
-             "-t", "SET", "-n", str(n_ops), "-c", "1", "-P", "1",
-             "-d", str(payload_bytes), "-q"],
-            capture_output=True, text=True, timeout=timeout,
-        )
-        bench_elapsed = time.time() - bench_t0
-        bench_out = bench.stdout + bench.stderr
-
-        m = BENCH_RE.search(bench_out)
-        if not m:
-            raise RuntimeError(f"no 'requests per second' in bench output:\n{bench_out[-500:]}")
-        ops_per_sec = float(m.group(1))
-
-        # Shutdown server gracefully via SIGTERM so crisp_on_exit fires + dumps profile
+        if not wait_listen(server_proc, port, deadline_sec=30 if IS_SGX else 10):
+            raise RuntimeError("server did not start listening within deadline")
+        elapsed = drive_workload(port, n_ops)
         server_proc.terminate()
         try:
-            server_out, _ = server_proc.communicate(timeout=60)
+            out, _ = server_proc.communicate(timeout=15)
         except subprocess.TimeoutExpired:
             server_proc.kill()
-            server_out, _ = server_proc.communicate()
-
-        csv_rows = CSV_LINE_RE.findall(server_out)
-        return int(bench_elapsed * 1e6), ops_per_sec, csv_rows
-
+            out, _ = server_proc.communicate()
+        ops_per_sec = n_ops / elapsed
+        csv_rows = CSV_LINE_RE.findall(out)
+        return int(elapsed * 1e6), ops_per_sec, csv_rows
     finally:
         if server_proc.poll() is None:
             server_proc.kill()
@@ -187,55 +177,42 @@ def run_one(workdir, mode, prob, n_ops, payload_bytes, port, timeout):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--out", default="redis_results.csv")
-    p.add_argument("--profile-out", default="redis_profile.csv")
-    p.add_argument("--modes", default="disabled,synchronous,optimistic,checker")
+    p.add_argument("--out", default="spire_server_results.csv")
+    p.add_argument("--profile-out", default="spire_server_profile.csv")
+    p.add_argument("--modes", default="optimistic")
     p.add_argument("--prob-sweep", default=None)
-    p.add_argument("--n-ops", type=int, default=1000)
-    p.add_argument("--payload", type=int, default=32, help="SET value payload bytes")
-    p.add_argument("--iter", type=int, default=1)
+    p.add_argument("--gate-policy", default="none,block")
+    p.add_argument("--n-ops", type=int, default=200)
+    p.add_argument("--iter", type=int, default=3)
     p.add_argument("--checker-prob", type=int, default=0)
-    p.add_argument("--gate-policy", default="none",
-                   help="Network egress gating policy: none|block|warn|drop (default none). "
-                        "Comma-separated for sweep (e.g. none,block)")
-    p.add_argument("--timeout", type=int, default=600)
+    p.add_argument("--timeout", type=int, default=300)
     args = p.parse_args()
 
-    # Sanity checks for prerequisites
-    if not REDIS_SERVER_SRC.exists():
-        print(f"ERROR: {REDIS_SERVER_SRC} not found. Run 'make SGX=1' in CI-Examples/redis first.",
-              file=sys.stderr)
-        sys.exit(1)
-    if not REDIS_CLI.exists() or not REDIS_BENCH.exists():
-        print(f"ERROR: redis-cli or redis-benchmark missing under {REDIS_DIR}/src/src/",
-              file=sys.stderr)
+    if not BENCH_BIN.exists():
+        print(f"ERROR: {BENCH_BIN} not found", file=sys.stderr)
         sys.exit(1)
 
     modes = args.modes.split(",")
     prob_sweep = [int(x) for x in args.prob_sweep.split(",")] if args.prob_sweep else None
     gate_policies = args.gate_policy.split(",") if args.gate_policy else ["none"]
 
-    print(f"# modes={modes} n_ops={args.n_ops} payload={args.payload} iter={args.iter} "
+    print(f"# modes={modes} n_ops={args.n_ops} iter={args.iter} "
           f"prob_sweep={prob_sweep} gate_policies={gate_policies} gramine={GRAMINE_CMD}")
 
     bench_rows = []
     profile_rows = []
 
     for mode in modes:
-        if mode == "checker":
-            probs_for_mode = prob_sweep if prob_sweep is not None else [args.checker_prob]
-        else:
-            probs_for_mode = [0]
+        probs_for_mode = prob_sweep if (mode == "checker" and prob_sweep) else [args.checker_prob if mode == "checker" else 0]
         for prob in probs_for_mode:
             for gate_policy in gate_policies:
-                # disabled mode skips gate_policy variations since gating only matters when CRISP active
                 if mode == "disabled" and gate_policy != "none":
                     continue
                 for iteration in range(args.iter):
-                    with tempfile.TemporaryDirectory(prefix="redis_bench_") as td:
+                    with tempfile.TemporaryDirectory(prefix="spire_server_") as td:
                         workdir = Path(td)
-                        port = find_free_port(16500 + iteration * 10)
-                        mc_path = f"/tmp/crisp_mc_redis_{os.getpid()}_{iteration}.dat"
+                        port = find_free_port(18099 + iteration * 10)
+                        mc_path = f"/tmp/crisp_mc_spireserver_{os.getpid()}_{iteration}.dat"
                         Path(mc_path).unlink(missing_ok=True)
                         Path(mc_path + ".tmp").unlink(missing_ok=True)
                         setup_workdir(workdir, mode, mc_path, port,
@@ -244,16 +221,14 @@ def main():
                         label = f"mode={mode} prob={prob} gate={gate_policy} iter={iteration} port={port}"
                         try:
                             elapsed_us, ops, csv_lines = run_one(workdir, mode, prob,
-                                                                 args.n_ops, args.payload,
-                                                                 port, args.timeout)
+                                                                 args.n_ops, port, args.timeout)
                         except Exception as exc:
                             print(f"FAIL {label}: {exc}", file=sys.stderr)
                             continue
                         print(f"OK {label} -> {ops:.2f} ops/s in {elapsed_us / 1000:.1f} ms")
                         bench_rows.append({
                             "mode": mode, "checker_prob": prob, "gate_policy": gate_policy,
-                            "iteration": iteration,
-                            "n_ops": args.n_ops, "payload_bytes": args.payload,
+                            "iteration": iteration, "n_ops": args.n_ops,
                             "elapsed_us": elapsed_us, "ops_per_sec": ops,
                         })
                         for line in csv_lines:
@@ -277,8 +252,7 @@ def main():
 
     with open(args.out, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=["mode", "checker_prob", "gate_policy",
-                                               "iteration",
-                                               "n_ops", "payload_bytes",
+                                               "iteration", "n_ops",
                                                "elapsed_us", "ops_per_sec"])
         writer.writeheader()
         writer.writerows(bench_rows)

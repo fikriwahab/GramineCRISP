@@ -18,6 +18,7 @@ static const char* const slot_names[CRISP_PROF_NUM_SLOTS] = {
     "fsync_hook",
     "close_hook",
     "exit_hook",
+    "gate_hook",
 };
 
 // Emit per-slot stats, called from crisp_on_exit after the final commit completes

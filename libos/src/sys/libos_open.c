@@ -11,6 +11,7 @@
 #include <limits.h>
 #include <stdalign.h>
 
+#include "crisp/crisp.h"
 #include "libos_fs.h"
 #include "libos_handle.h"
 #include "libos_internal.h"
@@ -85,6 +86,15 @@ long libos_syscall_write(int fd, const void* buf, size_t count) {
     struct libos_handle* hdl = get_fd_handle(fd, NULL, NULL);
     if (!hdl)
         return -EBADF;
+
+    // Network egress gating when write target is a socket fd
+    if (hdl->type == TYPE_SOCK) {
+        int gate_ret = crisp_gate_check();
+        if (gate_ret < 0) {
+            put_handle(hdl);
+            return gate_ret;
+        }
+    }
 
     ssize_t ret = do_handle_write(hdl, buf, count);
     put_handle(hdl);

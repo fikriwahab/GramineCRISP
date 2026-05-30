@@ -1,0 +1,23 @@
+# modes=['optimistic'] n_ops=200 iter=10 prob_sweep=None gate_policies=['none', 'block'] gramine=gramine-sgx
+OK mode=optimistic prob=0 gate=none iter=0 port=18099 -> 299.49 ops/s in 667.8 ms
+OK mode=optimistic prob=0 gate=none iter=1 port=18109 -> 419.94 ops/s in 476.3 ms
+OK mode=optimistic prob=0 gate=none iter=2 port=18119 -> 313.27 ops/s in 638.4 ms
+OK mode=optimistic prob=0 gate=none iter=3 port=18129 -> 304.85 ops/s in 656.1 ms
+OK mode=optimistic prob=0 gate=none iter=4 port=18139 -> 288.77 ops/s in 692.6 ms
+OK mode=optimistic prob=0 gate=none iter=5 port=18149 -> 300.01 ops/s in 666.6 ms
+OK mode=optimistic prob=0 gate=none iter=6 port=18159 -> 306.41 ops/s in 652.7 ms
+OK mode=optimistic prob=0 gate=none iter=7 port=18169 -> 250.29 ops/s in 799.1 ms
+OK mode=optimistic prob=0 gate=none iter=8 port=18179 -> 441.40 ops/s in 453.1 ms
+OK mode=optimistic prob=0 gate=none iter=9 port=18189 -> 430.82 ops/s in 464.2 ms
+OK mode=optimistic prob=0 gate=block iter=0 port=18099 -> 299.77 ops/s in 667.2 ms
+OK mode=optimistic prob=0 gate=block iter=1 port=18109 -> 405.28 ops/s in 493.5 ms
+OK mode=optimistic prob=0 gate=block iter=2 port=18119 -> 288.48 ops/s in 693.3 ms
+OK mode=optimistic prob=0 gate=block iter=3 port=18129 -> 434.79 ops/s in 460.0 ms
+OK mode=optimistic prob=0 gate=block iter=4 port=18139 -> 228.13 ops/s in 876.7 ms
+OK mode=optimistic prob=0 gate=block iter=5 port=18149 -> 377.13 ops/s in 530.3 ms
+OK mode=optimistic prob=0 gate=block iter=6 port=18159 -> 283.53 ops/s in 705.4 ms
+OK mode=optimistic prob=0 gate=block iter=7 port=18169 -> 285.22 ops/s in 701.2 ms
+OK mode=optimistic prob=0 gate=block iter=8 port=18179 -> 390.77 ops/s in 511.8 ms
+OK mode=optimistic prob=0 gate=block iter=9 port=18189 -> 209.92 ops/s in 952.7 ms
+wrote 20 rows to microbench/spire_server_gate_results.csv
+wrote 180 rows to microbench/spire_server_gate_profile.csv
