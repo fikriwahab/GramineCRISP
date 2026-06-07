@@ -1,0 +1,21 @@
+PASS pf_data_freshness
+  rollback_pf_only: True
+  rc: 1
+PASS vault_freshness
+  vault_deleted: True
+  rc: 1
+  mc: 3
+PASS mc_consistency
+  mc_gt_l: True
+  mc_lt_l: True
+  gt_rc: 1
+  lt_rc: 1
+PASS config_integrity
+  bad_tracked_type: True
+  bad_port: True
+  vault_collision: True
+PASS close_sync_gateways
+  close_range: True
+  exec_cloexec: True
+  directory_fsync: True
+summary pass=5 fail=0 total=5

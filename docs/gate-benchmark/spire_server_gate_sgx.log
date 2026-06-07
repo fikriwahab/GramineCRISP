@@ -1,0 +1,33 @@
+# modes=['optimistic'] n_ops=200 iter=10 prob_sweep=None gate_policies=['none', 'block', 'warn', 'drop'] gramine=gramine-sgx
+OK mode=optimistic prob=0 gate=none iter=0 port=18099 -> 271.70 ops/s in 736.1 ms
+OK mode=optimistic prob=0 gate=none iter=1 port=18109 -> 441.85 ops/s in 452.6 ms
+OK mode=optimistic prob=0 gate=none iter=2 port=18119 -> 295.15 ops/s in 677.6 ms
+OK mode=optimistic prob=0 gate=none iter=3 port=18129 -> 286.15 ops/s in 698.9 ms
+OK mode=optimistic prob=0 gate=none iter=4 port=18139 -> 330.06 ops/s in 605.9 ms
+OK mode=optimistic prob=0 gate=none iter=5 port=18149 -> 482.19 ops/s in 414.8 ms
+OK mode=optimistic prob=0 gate=none iter=6 port=18159 -> 419.67 ops/s in 476.6 ms
+OK mode=optimistic prob=0 gate=none iter=7 port=18169 -> 442.78 ops/s in 451.7 ms
+OK mode=optimistic prob=0 gate=none iter=8 port=18179 -> 282.98 ops/s in 706.8 ms
+OK mode=optimistic prob=0 gate=none iter=9 port=18189 -> 370.01 ops/s in 540.5 ms
+OK mode=optimistic prob=0 gate=block iter=0 port=18099 -> 399.37 ops/s in 500.8 ms
+OK mode=optimistic prob=0 gate=block iter=1 port=18109 -> 395.73 ops/s in 505.4 ms
+OK mode=optimistic prob=0 gate=block iter=2 port=18119 -> 278.97 ops/s in 716.9 ms
+OK mode=optimistic prob=0 gate=block iter=3 port=18129 -> 398.91 ops/s in 501.4 ms
+OK mode=optimistic prob=0 gate=block iter=4 port=18139 -> 368.02 ops/s in 543.4 ms
+OK mode=optimistic prob=0 gate=block iter=5 port=18149 -> 258.08 ops/s in 775.0 ms
+OK mode=optimistic prob=0 gate=block iter=6 port=18159 -> 281.16 ops/s in 711.3 ms
+OK mode=optimistic prob=0 gate=block iter=7 port=18169 -> 409.09 ops/s in 488.9 ms
+OK mode=optimistic prob=0 gate=block iter=8 port=18179 -> 261.78 ops/s in 764.0 ms
+OK mode=optimistic prob=0 gate=block iter=9 port=18189 -> 305.61 ops/s in 654.4 ms
+OK mode=optimistic prob=0 gate=warn iter=0 port=18099 -> 398.82 ops/s in 501.5 ms
+OK mode=optimistic prob=0 gate=warn iter=1 port=18109 -> 289.62 ops/s in 690.5 ms
+OK mode=optimistic prob=0 gate=warn iter=2 port=18119 -> 429.00 ops/s in 466.2 ms
+OK mode=optimistic prob=0 gate=warn iter=3 port=18129 -> 291.41 ops/s in 686.3 ms
+OK mode=optimistic prob=0 gate=warn iter=4 port=18139 -> 422.57 ops/s in 473.3 ms
+OK mode=optimistic prob=0 gate=warn iter=5 port=18149 -> 310.04 ops/s in 645.1 ms
+OK mode=optimistic prob=0 gate=warn iter=6 port=18159 -> 300.34 ops/s in 665.9 ms
+OK mode=optimistic prob=0 gate=warn iter=7 port=18169 -> 418.38 ops/s in 478.0 ms
+OK mode=optimistic prob=0 gate=warn iter=8 port=18179 -> 253.50 ops/s in 788.9 ms
+OK mode=optimistic prob=0 gate=warn iter=9 port=18189 -> 283.67 ops/s in 705.1 ms
+wrote 30 rows to /home/azureuser/gramine/docs/gate-benchmark/spire_server_gate_results.csv
+wrote 270 rows to /home/azureuser/gramine/docs/gate-benchmark/spire_server_gate_profile.csv

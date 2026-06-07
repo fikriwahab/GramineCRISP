@@ -1,0 +1,33 @@
+# modes=['optimistic'] n_ops=1000 payload=32 iter=10 prob_sweep=None gate_policies=['none', 'block', 'warn', 'drop'] gramine=gramine-sgx
+OK mode=optimistic prob=0 gate=none iter=0 port=16500 -> 168.21 ops/s in 5947.3 ms
+OK mode=optimistic prob=0 gate=none iter=1 port=16510 -> 165.21 ops/s in 6055.2 ms
+OK mode=optimistic prob=0 gate=none iter=2 port=16520 -> 164.37 ops/s in 6085.6 ms
+OK mode=optimistic prob=0 gate=none iter=3 port=16530 -> 165.40 ops/s in 6047.5 ms
+OK mode=optimistic prob=0 gate=none iter=4 port=16540 -> 150.20 ops/s in 6660.1 ms
+OK mode=optimistic prob=0 gate=none iter=5 port=16550 -> 160.77 ops/s in 6223.1 ms
+OK mode=optimistic prob=0 gate=none iter=6 port=16560 -> 160.21 ops/s in 6243.6 ms
+OK mode=optimistic prob=0 gate=none iter=7 port=16570 -> 143.80 ops/s in 6956.4 ms
+OK mode=optimistic prob=0 gate=none iter=8 port=16580 -> 163.59 ops/s in 6115.3 ms
+OK mode=optimistic prob=0 gate=none iter=9 port=16590 -> 152.81 ops/s in 6546.5 ms
+OK mode=optimistic prob=0 gate=block iter=0 port=16500 -> 63.88 ops/s in 15657.2 ms
+OK mode=optimistic prob=0 gate=block iter=1 port=16510 -> 62.43 ops/s in 16019.8 ms
+OK mode=optimistic prob=0 gate=block iter=2 port=16520 -> 55.96 ops/s in 17873.0 ms
+OK mode=optimistic prob=0 gate=block iter=3 port=16530 -> 62.40 ops/s in 16027.2 ms
+OK mode=optimistic prob=0 gate=block iter=4 port=16540 -> 63.61 ops/s in 15723.3 ms
+OK mode=optimistic prob=0 gate=block iter=5 port=16550 -> 65.36 ops/s in 15301.7 ms
+OK mode=optimistic prob=0 gate=block iter=6 port=16560 -> 66.11 ops/s in 15127.9 ms
+OK mode=optimistic prob=0 gate=block iter=7 port=16570 -> 66.93 ops/s in 14942.2 ms
+OK mode=optimistic prob=0 gate=block iter=8 port=16580 -> 62.98 ops/s in 15881.3 ms
+OK mode=optimistic prob=0 gate=block iter=9 port=16590 -> 62.22 ops/s in 16074.9 ms
+OK mode=optimistic prob=0 gate=warn iter=0 port=16500 -> 158.13 ops/s in 6327.1 ms
+OK mode=optimistic prob=0 gate=warn iter=1 port=16510 -> 164.10 ops/s in 6096.3 ms
+OK mode=optimistic prob=0 gate=warn iter=2 port=16520 -> 167.84 ops/s in 5960.1 ms
+OK mode=optimistic prob=0 gate=warn iter=3 port=16530 -> 163.21 ops/s in 6129.6 ms
+OK mode=optimistic prob=0 gate=warn iter=4 port=16540 -> 164.93 ops/s in 6064.7 ms
+OK mode=optimistic prob=0 gate=warn iter=5 port=16550 -> 168.69 ops/s in 5929.8 ms
+OK mode=optimistic prob=0 gate=warn iter=6 port=16560 -> 161.29 ops/s in 6202.2 ms
+OK mode=optimistic prob=0 gate=warn iter=7 port=16570 -> 166.69 ops/s in 6001.2 ms
+OK mode=optimistic prob=0 gate=warn iter=8 port=16580 -> 156.74 ops/s in 6382.9 ms
+OK mode=optimistic prob=0 gate=warn iter=9 port=16590 -> 169.81 ops/s in 5891.3 ms
+wrote 30 rows to redis_gate_results.csv
+wrote 270 rows to redis_gate_profile.csv
