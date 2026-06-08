@@ -209,8 +209,8 @@ def parse_args():
     p.add_argument("--file-size", type=int, default=16,
                    help="total file size in MiB written per run")
     p.add_argument("--checker-prob", type=int, default=0,
-                   help="single checker_prob value when --prob-sweep is not used")
-    p.add_argument("--prob-sweep", default=None,
+                   help="single checker_prob value when --prob is not used")
+    p.add_argument("--prob", default=None,
                    help="comma-separated checker_prob values to sweep for the checker mode")
     p.add_argument("--timeout", type=int, default=600,
                    help="per-run timeout seconds")
@@ -223,7 +223,7 @@ def main():
     modes = args.modes.split(",")
     buffers = [int(b) for b in args.buffers.split(",")]
     total_bytes = args.file_size * 1024 * 1024
-    prob_sweep = [int(x) for x in args.prob_sweep.split(",")] if args.prob_sweep else None
+    prob_sweep = [int(x) for x in args.prob.split(",")] if args.prob else None
 
     log_file = open(args.log, "w")
     real_stdout = sys.stdout

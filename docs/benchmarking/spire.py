@@ -154,7 +154,7 @@ def parse_args():
     p.add_argument("--log", default=str(default_log_path()),
                    help="log file mirroring stdout")
     p.add_argument("--modes", default="disabled,synchronous,optimistic,checker")
-    p.add_argument("--prob-sweep", default=None,
+    p.add_argument("--prob", default=None,
                    help="comma-separated checker_prob values for the checker mode")
     p.add_argument("--n-ops", type=int, default=200,
                    help="CreateRegistrationEntry calls per run")
@@ -177,7 +177,7 @@ def main():
         sys.exit(1)
 
     modes = args.modes.split(",")
-    prob_sweep = [int(x) for x in args.prob_sweep.split(",")] if args.prob_sweep else None
+    prob_sweep = [int(x) for x in args.prob.split(",")] if args.prob else None
 
     log_file = open(args.log, "w")
     real_stdout = sys.stdout

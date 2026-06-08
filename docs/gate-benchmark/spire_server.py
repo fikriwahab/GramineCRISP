@@ -216,7 +216,7 @@ def parse_args():
     p.add_argument("--log", default=str(default_log_path()),
                    help="log file mirroring stdout")
     p.add_argument("--modes", default="optimistic")
-    p.add_argument("--prob-sweep", default=None)
+    p.add_argument("--prob", default=None)
     p.add_argument("--gate-policy", default="none,block",
                    help="comma-separated gate policies to sweep")
     p.add_argument("--n-ops", type=int, default=200)
@@ -234,7 +234,7 @@ def main():
         sys.exit(1)
 
     modes = args.modes.split(",")
-    prob_sweep = [int(x) for x in args.prob_sweep.split(",")] if args.prob_sweep else None
+    prob_sweep = [int(x) for x in args.prob.split(",")] if args.prob else None
     gate_policies = args.gate_policy.split(",") if args.gate_policy else ["none"]
 
     log_file = open(args.log, "w")

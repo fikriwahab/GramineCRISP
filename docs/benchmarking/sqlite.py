@@ -219,7 +219,7 @@ def parse_args():
                    help="log file mirroring stdout")
     p.add_argument("--modes", default="disabled,synchronous,optimistic,checker",
                    help="comma-separated modes")
-    p.add_argument("--prob-sweep", default=None,
+    p.add_argument("--prob", default=None,
                    help="comma-separated checker_prob values for the checker mode")
     p.add_argument("--n-txn", type=int, default=500,
                    help="number of INSERT transactions per run")
@@ -234,7 +234,7 @@ def main():
     args = parse_args()
 
     modes = args.modes.split(",")
-    prob_sweep = [int(x) for x in args.prob_sweep.split(",")] if args.prob_sweep else None
+    prob_sweep = [int(x) for x in args.prob.split(",")] if args.prob else None
 
     log_file = open(args.log, "w")
     real_stdout = sys.stdout
