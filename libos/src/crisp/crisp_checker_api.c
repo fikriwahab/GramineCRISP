@@ -101,7 +101,10 @@ int crisp_checker_api_func(void* arg) {
     log_always("checker: listening on 127.0.0.1:%d", g_crisp.checker_api_port);
 
     // TODO: L3, single sequential listener, concurrent connections serialize, fine for a prototype
-    // TODO: future-work (Checker API and SCONE network shield-like integration), basically making a proxy that queries this Checker before externalizing any data or something
+    // Note: the externalization-window problem is solved LibOS-internally by the Network Egress
+    // Shield in crisp_gate.c (intercepts sendto/sendmsg/sendmmsg/write/writev before they leave
+    // the enclave and calls crisp_drain_and_wait directly), not by an external proxy querying
+    // this Checker API over TCP. this server remains useful for clients that opt into explicit waits
     while (!__atomic_load_n(&g_crisp.halted, __ATOMIC_ACQUIRE)) {
         PAL_HANDLE client = NULL;
         int ret = PalSocketAccept(g_crisp.checker_listener, /*options=*/0, &client,
