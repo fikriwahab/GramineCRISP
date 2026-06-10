@@ -60,7 +60,7 @@ int crisp_gate_check(void) {
             return -ECONNREFUSED;
 
         case CRISP_GATE_BLOCK: {
-            // Block until queue drained and S >= L, the canonical commit-complete predicate
+            // Block until queue drained and S >= L (all pending commits are done)
             int ret = crisp_drain_and_wait();
             CRISP_PROF_END(GATE_HOOK);
             if (ret < 0) {

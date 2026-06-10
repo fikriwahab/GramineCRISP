@@ -1,0 +1,33 @@
+# modes=['checker'] n_txn=500 iter=10 prob_sweep=[30, 50, 70] gramine=gramine-sgx
+OK mode=checker prob=30 iter=0 -> 14.47 txn/s in 34562.8 ms
+OK mode=checker prob=30 iter=1 -> 14.84 txn/s in 33701.9 ms
+OK mode=checker prob=30 iter=2 -> 14.64 txn/s in 34144.5 ms
+OK mode=checker prob=30 iter=3 -> 14.69 txn/s in 34028.7 ms
+OK mode=checker prob=30 iter=4 -> 14.69 txn/s in 34040.3 ms
+OK mode=checker prob=30 iter=5 -> 14.53 txn/s in 34419.8 ms
+OK mode=checker prob=30 iter=6 -> 15.00 txn/s in 33322.2 ms
+OK mode=checker prob=30 iter=7 -> 14.41 txn/s in 34692.9 ms
+OK mode=checker prob=30 iter=8 -> 14.67 txn/s in 34078.3 ms
+OK mode=checker prob=30 iter=9 -> 15.04 txn/s in 33245.0 ms
+OK mode=checker prob=50 iter=0 -> 13.71 txn/s in 36463.4 ms
+OK mode=checker prob=50 iter=1 -> 13.40 txn/s in 37310.8 ms
+OK mode=checker prob=50 iter=2 -> 13.59 txn/s in 36793.2 ms
+OK mode=checker prob=50 iter=3 -> 13.74 txn/s in 36398.1 ms
+OK mode=checker prob=50 iter=4 -> 12.90 txn/s in 38765.5 ms
+OK mode=checker prob=50 iter=5 -> 13.72 txn/s in 36455.5 ms
+OK mode=checker prob=50 iter=6 -> 13.70 txn/s in 36499.8 ms
+OK mode=checker prob=50 iter=7 -> 13.94 txn/s in 35874.5 ms
+OK mode=checker prob=50 iter=8 -> 13.76 txn/s in 36335.5 ms
+OK mode=checker prob=50 iter=9 -> 14.15 txn/s in 35337.8 ms
+OK mode=checker prob=70 iter=0 -> 13.65 txn/s in 36636.2 ms
+OK mode=checker prob=70 iter=1 -> 13.08 txn/s in 38235.1 ms
+OK mode=checker prob=70 iter=2 -> 13.06 txn/s in 38273.1 ms
+OK mode=checker prob=70 iter=3 -> 12.91 txn/s in 38725.6 ms
+OK mode=checker prob=70 iter=4 -> 12.70 txn/s in 39357.4 ms
+OK mode=checker prob=70 iter=5 -> 13.13 txn/s in 38071.4 ms
+OK mode=checker prob=70 iter=6 -> 12.98 txn/s in 38506.9 ms
+OK mode=checker prob=70 iter=7 -> 13.49 txn/s in 37063.2 ms
+OK mode=checker prob=70 iter=8 -> 13.33 txn/s in 37520.0 ms
+OK mode=checker prob=70 iter=9 -> 12.96 txn/s in 38566.1 ms
+wrote 30 rows to /home/azureuser/gramine/docs/benchmarking-intermediate-p/sqlite_results_inter.csv
+wrote 270 rows to /home/azureuser/gramine/docs/benchmarking-intermediate-p/sqlite_profile_inter.csv

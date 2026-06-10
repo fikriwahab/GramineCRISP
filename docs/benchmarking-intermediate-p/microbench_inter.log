@@ -1,0 +1,12 @@
+# mode=['checker'] buffers=[1024, 4096, 16384] iter=1 file_size=16MiB prob_sweep=[30, 50, 70] gramine=gramine-sgx
+OK mode=checker prob=30 buf=1024 iter=0 -> 95.51 kB/s in 171537.3 ms
+OK mode=checker prob=30 buf=4096 iter=0 -> 344.83 kB/s in 47512.9 ms
+OK mode=checker prob=30 buf=16384 iter=0 -> 1365.82 kB/s in 11995.7 ms
+OK mode=checker prob=50 buf=1024 iter=0 -> 81.18 kB/s in 201812.1 ms
+OK mode=checker prob=50 buf=4096 iter=0 -> 318.31 kB/s in 51471.9 ms
+OK mode=checker prob=50 buf=16384 iter=0 -> 1193.12 kB/s in 13732.1 ms
+OK mode=checker prob=70 buf=1024 iter=0 -> 72.45 kB/s in 226142.2 ms
+OK mode=checker prob=70 buf=4096 iter=0 -> 282.46 kB/s in 58005.4 ms
+OK mode=checker prob=70 buf=16384 iter=0 -> 1221.19 kB/s in 13416.5 ms
+wrote 9 rows to /home/azureuser/gramine/docs/benchmarking-intermediate-p/microbench_results_inter.csv
+wrote 81 rows to /home/azureuser/gramine/docs/benchmarking-intermediate-p/microbench_profile_inter.csv

@@ -1,0 +1,132 @@
+[22:41:21] START rebase-sqlite-redis
+[22:41:21] START rebase-redis
+# modes=['disabled', 'synchronous', 'optimistic', 'checker'] n_ops=1000 payload=32 iter=10 prob_sweep=[0, 10, 100] gate_policies=['none'] gramine=gramine-sgx
+OK mode=disabled prob=0 gate=none iter=0 port=16500 -> 244.86 ops/s in 4085.7 ms
+OK mode=disabled prob=0 gate=none iter=1 port=16510 -> 246.37 ops/s in 4061.4 ms
+OK mode=disabled prob=0 gate=none iter=2 port=16520 -> 256.34 ops/s in 3903.4 ms
+OK mode=disabled prob=0 gate=none iter=3 port=16530 -> 227.84 ops/s in 4391.2 ms
+OK mode=disabled prob=0 gate=none iter=4 port=16540 -> 242.72 ops/s in 4122.0 ms
+OK mode=disabled prob=0 gate=none iter=5 port=16550 -> 246.91 ops/s in 4051.8 ms
+OK mode=disabled prob=0 gate=none iter=6 port=16560 -> 237.70 ops/s in 4209.7 ms
+OK mode=disabled prob=0 gate=none iter=7 port=16570 -> 243.66 ops/s in 4105.7 ms
+OK mode=disabled prob=0 gate=none iter=8 port=16580 -> 266.95 ops/s in 3748.2 ms
+OK mode=disabled prob=0 gate=none iter=9 port=16590 -> 247.52 ops/s in 4042.6 ms
+OK mode=synchronous prob=0 gate=none iter=0 port=16500 -> 65.18 ops/s in 15344.6 ms
+OK mode=synchronous prob=0 gate=none iter=1 port=16510 -> 62.27 ops/s in 16061.0 ms
+OK mode=synchronous prob=0 gate=none iter=2 port=16520 -> 62.07 ops/s in 16112.4 ms
+OK mode=synchronous prob=0 gate=none iter=3 port=16530 -> 66.66 ops/s in 15002.2 ms
+OK mode=synchronous prob=0 gate=none iter=4 port=16540 -> 65.86 ops/s in 15186.0 ms
+OK mode=synchronous prob=0 gate=none iter=5 port=16550 -> 64.79 ops/s in 15436.7 ms
+OK mode=synchronous prob=0 gate=none iter=6 port=16560 -> 65.74 ops/s in 15213.1 ms
+OK mode=synchronous prob=0 gate=none iter=7 port=16570 -> 67.37 ops/s in 14844.6 ms
+OK mode=synchronous prob=0 gate=none iter=8 port=16580 -> 65.53 ops/s in 15262.2 ms
+OK mode=synchronous prob=0 gate=none iter=9 port=16590 -> 67.73 ops/s in 14766.0 ms
+OK mode=optimistic prob=0 gate=none iter=0 port=16500 -> 147.25 ops/s in 6792.5 ms
+OK mode=optimistic prob=0 gate=none iter=1 port=16510 -> 154.85 ops/s in 6459.5 ms
+OK mode=optimistic prob=0 gate=none iter=2 port=16520 -> 137.31 ops/s in 7286.0 ms
+OK mode=optimistic prob=0 gate=none iter=3 port=16530 -> 142.13 ops/s in 7038.4 ms
+OK mode=optimistic prob=0 gate=none iter=4 port=16540 -> 149.99 ops/s in 6669.2 ms
+OK mode=optimistic prob=0 gate=none iter=5 port=16550 -> 145.22 ops/s in 6888.4 ms
+OK mode=optimistic prob=0 gate=none iter=6 port=16560 -> 146.01 ops/s in 6851.6 ms
+OK mode=optimistic prob=0 gate=none iter=7 port=16570 -> 139.30 ops/s in 7180.9 ms
+OK mode=optimistic prob=0 gate=none iter=8 port=16580 -> 149.86 ops/s in 6675.6 ms
+OK mode=optimistic prob=0 gate=none iter=9 port=16590 -> 136.59 ops/s in 7322.5 ms
+OK mode=checker prob=0 gate=none iter=0 port=16500 -> 151.58 ops/s in 6599.2 ms
+OK mode=checker prob=0 gate=none iter=1 port=16510 -> 160.08 ops/s in 6249.6 ms
+OK mode=checker prob=0 gate=none iter=2 port=16520 -> 137.68 ops/s in 7265.0 ms
+OK mode=checker prob=0 gate=none iter=3 port=16530 -> 150.88 ops/s in 6629.9 ms
+OK mode=checker prob=0 gate=none iter=4 port=16540 -> 139.92 ops/s in 7149.5 ms
+OK mode=checker prob=0 gate=none iter=5 port=16550 -> 147.12 ops/s in 6798.7 ms
+OK mode=checker prob=0 gate=none iter=6 port=16560 -> 147.43 ops/s in 6785.2 ms
+OK mode=checker prob=0 gate=none iter=7 port=16570 -> 148.26 ops/s in 6746.7 ms
+OK mode=checker prob=0 gate=none iter=8 port=16580 -> 156.27 ops/s in 6401.7 ms
+OK mode=checker prob=0 gate=none iter=9 port=16590 -> 144.03 ops/s in 6945.5 ms
+OK mode=checker prob=10 gate=none iter=0 port=16500 -> 133.28 ops/s in 7505.6 ms
+OK mode=checker prob=10 gate=none iter=1 port=16510 -> 121.29 ops/s in 8247.4 ms
+OK mode=checker prob=10 gate=none iter=2 port=16520 -> 124.91 ops/s in 8007.3 ms
+OK mode=checker prob=10 gate=none iter=3 port=16530 -> 123.00 ops/s in 8131.7 ms
+OK mode=checker prob=10 gate=none iter=4 port=16540 -> 129.60 ops/s in 7718.3 ms
+OK mode=checker prob=10 gate=none iter=5 port=16550 -> 121.54 ops/s in 8230.9 ms
+OK mode=checker prob=10 gate=none iter=6 port=16560 -> 128.98 ops/s in 7754.9 ms
+OK mode=checker prob=10 gate=none iter=7 port=16570 -> 124.33 ops/s in 8044.9 ms
+OK mode=checker prob=10 gate=none iter=8 port=16580 -> 121.02 ops/s in 8265.2 ms
+OK mode=checker prob=10 gate=none iter=9 port=16590 -> 126.28 ops/s in 7921.2 ms
+OK mode=checker prob=100 gate=none iter=0 port=16500 -> 67.51 ops/s in 14815.4 ms
+OK mode=checker prob=100 gate=none iter=1 port=16510 -> 67.04 ops/s in 14918.1 ms
+OK mode=checker prob=100 gate=none iter=2 port=16520 -> 65.73 ops/s in 15215.2 ms
+OK mode=checker prob=100 gate=none iter=3 port=16530 -> 66.51 ops/s in 15037.6 ms
+OK mode=checker prob=100 gate=none iter=4 port=16540 -> 67.52 ops/s in 14812.8 ms
+OK mode=checker prob=100 gate=none iter=5 port=16550 -> 67.39 ops/s in 14841.0 ms
+OK mode=checker prob=100 gate=none iter=6 port=16560 -> 67.24 ops/s in 14873.8 ms
+OK mode=checker prob=100 gate=none iter=7 port=16570 -> 66.55 ops/s in 15028.8 ms
+OK mode=checker prob=100 gate=none iter=8 port=16580 -> 68.25 ops/s in 14654.0 ms
+OK mode=checker prob=100 gate=none iter=9 port=16590 -> 69.37 ops/s in 14418.1 ms
+wrote 60 rows to /home/azureuser/gramine/docs/benchmarking-intermediate-p/redis_results_rebase.csv
+wrote 450 rows to /home/azureuser/gramine/docs/benchmarking-intermediate-p/redis_profile_rebase.csv
+[22:53:20] DONE rebase-redis, rc=0
+[22:53:20] START rebase-sqlite
+# modes=['disabled', 'synchronous', 'optimistic', 'checker'] n_txn=500 iter=10 prob_sweep=[0, 10, 100] gramine=gramine-sgx
+OK mode=disabled prob=0 iter=0 -> 70.01 txn/s in 7142.3 ms
+OK mode=disabled prob=0 iter=1 -> 74.92 txn/s in 6673.9 ms
+OK mode=disabled prob=0 iter=2 -> 74.63 txn/s in 6699.6 ms
+OK mode=disabled prob=0 iter=3 -> 76.02 txn/s in 6577.5 ms
+OK mode=disabled prob=0 iter=4 -> 75.81 txn/s in 6595.4 ms
+OK mode=disabled prob=0 iter=5 -> 80.43 txn/s in 6216.6 ms
+OK mode=disabled prob=0 iter=6 -> 76.38 txn/s in 6546.0 ms
+OK mode=disabled prob=0 iter=7 -> 76.11 txn/s in 6569.7 ms
+OK mode=disabled prob=0 iter=8 -> 76.92 txn/s in 6500.5 ms
+OK mode=disabled prob=0 iter=9 -> 73.62 txn/s in 6791.6 ms
+OK mode=synchronous prob=0 iter=0 -> 13.13 txn/s in 38084.6 ms
+OK mode=synchronous prob=0 iter=1 -> 13.31 txn/s in 37579.5 ms
+OK mode=synchronous prob=0 iter=2 -> 13.31 txn/s in 37574.3 ms
+OK mode=synchronous prob=0 iter=3 -> 13.43 txn/s in 37234.0 ms
+OK mode=synchronous prob=0 iter=4 -> 12.97 txn/s in 38558.0 ms
+OK mode=synchronous prob=0 iter=5 -> 12.92 txn/s in 38694.3 ms
+OK mode=synchronous prob=0 iter=6 -> 12.64 txn/s in 39569.6 ms
+OK mode=synchronous prob=0 iter=7 -> 12.02 txn/s in 41598.6 ms
+OK mode=synchronous prob=0 iter=8 -> 12.41 txn/s in 40290.2 ms
+OK mode=synchronous prob=0 iter=9 -> 11.79 txn/s in 42417.6 ms
+OK mode=optimistic prob=0 iter=0 -> 16.41 txn/s in 30477.0 ms
+OK mode=optimistic prob=0 iter=1 -> 12.84 txn/s in 38933.6 ms
+OK mode=optimistic prob=0 iter=2 -> 17.09 txn/s in 29263.9 ms
+OK mode=optimistic prob=0 iter=3 -> 17.32 txn/s in 28875.2 ms
+OK mode=optimistic prob=0 iter=4 -> 17.37 txn/s in 28789.0 ms
+OK mode=optimistic prob=0 iter=5 -> 18.02 txn/s in 27751.2 ms
+OK mode=optimistic prob=0 iter=6 -> 17.01 txn/s in 29393.8 ms
+OK mode=optimistic prob=0 iter=7 -> 17.74 txn/s in 28184.3 ms
+OK mode=optimistic prob=0 iter=8 -> 17.22 txn/s in 29036.6 ms
+OK mode=optimistic prob=0 iter=9 -> 17.61 txn/s in 28388.2 ms
+OK mode=checker prob=0 iter=0 -> 17.36 txn/s in 28796.7 ms
+OK mode=checker prob=0 iter=1 -> 17.79 txn/s in 28100.9 ms
+OK mode=checker prob=0 iter=2 -> 17.70 txn/s in 28247.8 ms
+OK mode=checker prob=0 iter=3 -> 16.88 txn/s in 29624.7 ms
+OK mode=checker prob=0 iter=4 -> 15.50 txn/s in 32265.7 ms
+OK mode=checker prob=0 iter=5 -> 16.95 txn/s in 29498.7 ms
+OK mode=checker prob=0 iter=6 -> 16.99 txn/s in 29424.7 ms
+OK mode=checker prob=0 iter=7 -> 17.55 txn/s in 28494.3 ms
+OK mode=checker prob=0 iter=8 -> 17.45 txn/s in 28649.0 ms
+OK mode=checker prob=0 iter=9 -> 18.02 txn/s in 27752.9 ms
+OK mode=checker prob=10 iter=0 -> 16.16 txn/s in 30945.2 ms
+OK mode=checker prob=10 iter=1 -> 16.50 txn/s in 30309.3 ms
+OK mode=checker prob=10 iter=2 -> 16.44 txn/s in 30406.7 ms
+OK mode=checker prob=10 iter=3 -> 16.55 txn/s in 30209.6 ms
+OK mode=checker prob=10 iter=4 -> 16.38 txn/s in 30529.5 ms
+OK mode=checker prob=10 iter=5 -> 16.23 txn/s in 30799.7 ms
+OK mode=checker prob=10 iter=6 -> 16.42 txn/s in 30445.0 ms
+OK mode=checker prob=10 iter=7 -> 16.67 txn/s in 29992.8 ms
+OK mode=checker prob=10 iter=8 -> 15.80 txn/s in 31643.8 ms
+OK mode=checker prob=10 iter=9 -> 15.30 txn/s in 32678.6 ms
+OK mode=checker prob=100 iter=0 -> 12.77 txn/s in 39166.9 ms
+OK mode=checker prob=100 iter=1 -> 12.55 txn/s in 39849.0 ms
+OK mode=checker prob=100 iter=2 -> 12.52 txn/s in 39937.8 ms
+OK mode=checker prob=100 iter=3 -> 12.83 txn/s in 38979.0 ms
+OK mode=checker prob=100 iter=4 -> 12.73 txn/s in 39275.8 ms
+OK mode=checker prob=100 iter=5 -> 12.81 txn/s in 39036.9 ms
+OK mode=checker prob=100 iter=6 -> 13.03 txn/s in 38358.8 ms
+OK mode=checker prob=100 iter=7 -> 12.80 txn/s in 39069.9 ms
+OK mode=checker prob=100 iter=8 -> 12.91 txn/s in 38727.6 ms
+OK mode=checker prob=100 iter=9 -> 12.81 txn/s in 39043.8 ms
+wrote 60 rows to /home/azureuser/gramine/docs/benchmarking-intermediate-p/sqlite_results_rebase.csv
+wrote 450 rows to /home/azureuser/gramine/docs/benchmarking-intermediate-p/sqlite_profile_rebase.csv
+[23:26:49] DONE rebase-sqlite, rc=0
+[23:26:49] REBASE DONE

@@ -1,0 +1,33 @@
+# modes=['checker'] n_ops=1000 payload=32 iter=10 prob_sweep=[30, 50, 70] gate_policies=['none'] gramine=gramine-sgx
+OK mode=checker prob=30 gate=none iter=0 port=16500 -> 93.46 ops/s in 10715.2 ms
+OK mode=checker prob=30 gate=none iter=1 port=16510 -> 103.58 ops/s in 9656.5 ms
+OK mode=checker prob=30 gate=none iter=2 port=16520 -> 95.25 ops/s in 10500.9 ms
+OK mode=checker prob=30 gate=none iter=3 port=16530 -> 100.12 ops/s in 9990.4 ms
+OK mode=checker prob=30 gate=none iter=4 port=16540 -> 98.15 ops/s in 10191.6 ms
+OK mode=checker prob=30 gate=none iter=5 port=16550 -> 99.09 ops/s in 10093.5 ms
+OK mode=checker prob=30 gate=none iter=6 port=16560 -> 103.72 ops/s in 9643.8 ms
+OK mode=checker prob=30 gate=none iter=7 port=16570 -> 99.12 ops/s in 10091.3 ms
+OK mode=checker prob=30 gate=none iter=8 port=16580 -> 96.06 ops/s in 10411.4 ms
+OK mode=checker prob=30 gate=none iter=9 port=16590 -> 96.11 ops/s in 10406.9 ms
+OK mode=checker prob=50 gate=none iter=0 port=16500 -> 88.51 ops/s in 11300.5 ms
+OK mode=checker prob=50 gate=none iter=1 port=16510 -> 85.35 ops/s in 11719.5 ms
+OK mode=checker prob=50 gate=none iter=2 port=16520 -> 82.65 ops/s in 12101.4 ms
+OK mode=checker prob=50 gate=none iter=3 port=16530 -> 82.76 ops/s in 12085.2 ms
+OK mode=checker prob=50 gate=none iter=4 port=16540 -> 80.96 ops/s in 12354.0 ms
+OK mode=checker prob=50 gate=none iter=5 port=16550 -> 84.33 ops/s in 11860.5 ms
+OK mode=checker prob=50 gate=none iter=6 port=16560 -> 87.02 ops/s in 11492.8 ms
+OK mode=checker prob=50 gate=none iter=7 port=16570 -> 88.84 ops/s in 11257.8 ms
+OK mode=checker prob=50 gate=none iter=8 port=16580 -> 83.06 ops/s in 12042.5 ms
+OK mode=checker prob=50 gate=none iter=9 port=16590 -> 80.06 ops/s in 12493.0 ms
+OK mode=checker prob=70 gate=none iter=0 port=16500 -> 74.74 ops/s in 13381.0 ms
+OK mode=checker prob=70 gate=none iter=1 port=16510 -> 74.40 ops/s in 13443.0 ms
+OK mode=checker prob=70 gate=none iter=2 port=16520 -> 76.11 ops/s in 13141.4 ms
+OK mode=checker prob=70 gate=none iter=3 port=16530 -> 78.08 ops/s in 12809.6 ms
+OK mode=checker prob=70 gate=none iter=4 port=16540 -> 72.00 ops/s in 13890.0 ms
+OK mode=checker prob=70 gate=none iter=5 port=16550 -> 77.34 ops/s in 12931.8 ms
+OK mode=checker prob=70 gate=none iter=6 port=16560 -> 79.43 ops/s in 12591.9 ms
+OK mode=checker prob=70 gate=none iter=7 port=16570 -> 73.57 ops/s in 13595.4 ms
+OK mode=checker prob=70 gate=none iter=8 port=16580 -> 76.36 ops/s in 13098.1 ms
+OK mode=checker prob=70 gate=none iter=9 port=16590 -> 75.90 ops/s in 13178.3 ms
+wrote 30 rows to /home/azureuser/gramine/docs/benchmarking-intermediate-p/redis_results_inter.csv
+wrote 270 rows to /home/azureuser/gramine/docs/benchmarking-intermediate-p/redis_profile_inter.csv

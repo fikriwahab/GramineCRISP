@@ -1,0 +1,33 @@
+# modes=['checker'] n_ops=200 iter=10 prob_sweep=[30, 50, 70] gramine=gramine-sgx
+OK mode=checker prob=30 iter=0 -> 522.69 ops/s in 382.6 ms
+OK mode=checker prob=30 iter=1 -> 359.12 ops/s in 556.9 ms
+OK mode=checker prob=30 iter=2 -> 291.51 ops/s in 686.1 ms
+OK mode=checker prob=30 iter=3 -> 350.78 ops/s in 570.2 ms
+OK mode=checker prob=30 iter=4 -> 400.35 ops/s in 499.6 ms
+OK mode=checker prob=30 iter=5 -> 352.02 ops/s in 568.1 ms
+OK mode=checker prob=30 iter=6 -> 324.10 ops/s in 617.1 ms
+OK mode=checker prob=30 iter=7 -> 358.90 ops/s in 557.3 ms
+OK mode=checker prob=30 iter=8 -> 319.43 ops/s in 626.1 ms
+OK mode=checker prob=30 iter=9 -> 424.27 ops/s in 471.4 ms
+OK mode=checker prob=50 iter=0 -> 259.60 ops/s in 770.4 ms
+OK mode=checker prob=50 iter=1 -> 305.64 ops/s in 654.4 ms
+OK mode=checker prob=50 iter=2 -> 312.27 ops/s in 640.5 ms
+OK mode=checker prob=50 iter=3 -> 445.32 ops/s in 449.1 ms
+OK mode=checker prob=50 iter=4 -> 300.40 ops/s in 665.8 ms
+OK mode=checker prob=50 iter=5 -> 384.66 ops/s in 519.9 ms
+OK mode=checker prob=50 iter=6 -> 323.51 ops/s in 618.2 ms
+OK mode=checker prob=50 iter=7 -> 345.30 ops/s in 579.2 ms
+OK mode=checker prob=50 iter=8 -> 336.52 ops/s in 594.3 ms
+OK mode=checker prob=50 iter=9 -> 418.09 ops/s in 478.4 ms
+OK mode=checker prob=70 iter=0 -> 404.11 ops/s in 494.9 ms
+OK mode=checker prob=70 iter=1 -> 483.12 ops/s in 414.0 ms
+OK mode=checker prob=70 iter=2 -> 324.61 ops/s in 616.1 ms
+OK mode=checker prob=70 iter=3 -> 325.37 ops/s in 614.7 ms
+OK mode=checker prob=70 iter=4 -> 265.15 ops/s in 754.3 ms
+OK mode=checker prob=70 iter=5 -> 319.57 ops/s in 625.8 ms
+OK mode=checker prob=70 iter=6 -> 341.29 ops/s in 586.0 ms
+OK mode=checker prob=70 iter=7 -> 294.86 ops/s in 678.3 ms
+OK mode=checker prob=70 iter=8 -> 323.56 ops/s in 618.1 ms
+OK mode=checker prob=70 iter=9 -> 367.14 ops/s in 544.8 ms
+wrote 30 rows to /home/azureuser/gramine/docs/benchmarking-intermediate-p/spire_results_inter.csv
+wrote 270 rows to /home/azureuser/gramine/docs/benchmarking-intermediate-p/spire_profile_inter.csv

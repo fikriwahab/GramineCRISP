@@ -1,0 +1,120 @@
+[21:44:59] START microbench
+# mode=['checker'] buffers=[1024, 4096, 16384] iter=1 file_size=16MiB prob_sweep=[30, 50, 70] gramine=gramine-sgx
+OK mode=checker prob=30 buf=1024 iter=0 -> 95.51 kB/s in 171537.3 ms
+OK mode=checker prob=30 buf=4096 iter=0 -> 344.83 kB/s in 47512.9 ms
+OK mode=checker prob=30 buf=16384 iter=0 -> 1365.82 kB/s in 11995.7 ms
+OK mode=checker prob=50 buf=1024 iter=0 -> 81.18 kB/s in 201812.1 ms
+OK mode=checker prob=50 buf=4096 iter=0 -> 318.31 kB/s in 51471.9 ms
+OK mode=checker prob=50 buf=16384 iter=0 -> 1193.12 kB/s in 13732.1 ms
+OK mode=checker prob=70 buf=1024 iter=0 -> 72.45 kB/s in 226142.2 ms
+OK mode=checker prob=70 buf=4096 iter=0 -> 282.46 kB/s in 58005.4 ms
+OK mode=checker prob=70 buf=16384 iter=0 -> 1221.19 kB/s in 13416.5 ms
+wrote 9 rows to /home/azureuser/gramine/docs/benchmarking-intermediate-p/microbench_results_inter.csv
+wrote 81 rows to /home/azureuser/gramine/docs/benchmarking-intermediate-p/microbench_profile_inter.csv
+[21:58:30] DONE microbench, rc=0
+[21:58:30] START spire
+# modes=['checker'] n_ops=200 iter=10 prob_sweep=[30, 50, 70] gramine=gramine-sgx
+OK mode=checker prob=30 iter=0 -> 522.69 ops/s in 382.6 ms
+OK mode=checker prob=30 iter=1 -> 359.12 ops/s in 556.9 ms
+OK mode=checker prob=30 iter=2 -> 291.51 ops/s in 686.1 ms
+OK mode=checker prob=30 iter=3 -> 350.78 ops/s in 570.2 ms
+OK mode=checker prob=30 iter=4 -> 400.35 ops/s in 499.6 ms
+OK mode=checker prob=30 iter=5 -> 352.02 ops/s in 568.1 ms
+OK mode=checker prob=30 iter=6 -> 324.10 ops/s in 617.1 ms
+OK mode=checker prob=30 iter=7 -> 358.90 ops/s in 557.3 ms
+OK mode=checker prob=30 iter=8 -> 319.43 ops/s in 626.1 ms
+OK mode=checker prob=30 iter=9 -> 424.27 ops/s in 471.4 ms
+OK mode=checker prob=50 iter=0 -> 259.60 ops/s in 770.4 ms
+OK mode=checker prob=50 iter=1 -> 305.64 ops/s in 654.4 ms
+OK mode=checker prob=50 iter=2 -> 312.27 ops/s in 640.5 ms
+OK mode=checker prob=50 iter=3 -> 445.32 ops/s in 449.1 ms
+OK mode=checker prob=50 iter=4 -> 300.40 ops/s in 665.8 ms
+OK mode=checker prob=50 iter=5 -> 384.66 ops/s in 519.9 ms
+OK mode=checker prob=50 iter=6 -> 323.51 ops/s in 618.2 ms
+OK mode=checker prob=50 iter=7 -> 345.30 ops/s in 579.2 ms
+OK mode=checker prob=50 iter=8 -> 336.52 ops/s in 594.3 ms
+OK mode=checker prob=50 iter=9 -> 418.09 ops/s in 478.4 ms
+OK mode=checker prob=70 iter=0 -> 404.11 ops/s in 494.9 ms
+OK mode=checker prob=70 iter=1 -> 483.12 ops/s in 414.0 ms
+OK mode=checker prob=70 iter=2 -> 324.61 ops/s in 616.1 ms
+OK mode=checker prob=70 iter=3 -> 325.37 ops/s in 614.7 ms
+OK mode=checker prob=70 iter=4 -> 265.15 ops/s in 754.3 ms
+OK mode=checker prob=70 iter=5 -> 319.57 ops/s in 625.8 ms
+OK mode=checker prob=70 iter=6 -> 341.29 ops/s in 586.0 ms
+OK mode=checker prob=70 iter=7 -> 294.86 ops/s in 678.3 ms
+OK mode=checker prob=70 iter=8 -> 323.56 ops/s in 618.1 ms
+OK mode=checker prob=70 iter=9 -> 367.14 ops/s in 544.8 ms
+wrote 30 rows to /home/azureuser/gramine/docs/benchmarking-intermediate-p/spire_results_inter.csv
+wrote 270 rows to /home/azureuser/gramine/docs/benchmarking-intermediate-p/spire_profile_inter.csv
+[22:08:10] DONE spire, rc=0
+[22:08:10] START redis
+# modes=['checker'] n_ops=1000 payload=32 iter=10 prob_sweep=[30, 50, 70] gate_policies=['none'] gramine=gramine-sgx
+OK mode=checker prob=30 gate=none iter=0 port=16500 -> 93.46 ops/s in 10715.2 ms
+OK mode=checker prob=30 gate=none iter=1 port=16510 -> 103.58 ops/s in 9656.5 ms
+OK mode=checker prob=30 gate=none iter=2 port=16520 -> 95.25 ops/s in 10500.9 ms
+OK mode=checker prob=30 gate=none iter=3 port=16530 -> 100.12 ops/s in 9990.4 ms
+OK mode=checker prob=30 gate=none iter=4 port=16540 -> 98.15 ops/s in 10191.6 ms
+OK mode=checker prob=30 gate=none iter=5 port=16550 -> 99.09 ops/s in 10093.5 ms
+OK mode=checker prob=30 gate=none iter=6 port=16560 -> 103.72 ops/s in 9643.8 ms
+OK mode=checker prob=30 gate=none iter=7 port=16570 -> 99.12 ops/s in 10091.3 ms
+OK mode=checker prob=30 gate=none iter=8 port=16580 -> 96.06 ops/s in 10411.4 ms
+OK mode=checker prob=30 gate=none iter=9 port=16590 -> 96.11 ops/s in 10406.9 ms
+OK mode=checker prob=50 gate=none iter=0 port=16500 -> 88.51 ops/s in 11300.5 ms
+OK mode=checker prob=50 gate=none iter=1 port=16510 -> 85.35 ops/s in 11719.5 ms
+OK mode=checker prob=50 gate=none iter=2 port=16520 -> 82.65 ops/s in 12101.4 ms
+OK mode=checker prob=50 gate=none iter=3 port=16530 -> 82.76 ops/s in 12085.2 ms
+OK mode=checker prob=50 gate=none iter=4 port=16540 -> 80.96 ops/s in 12354.0 ms
+OK mode=checker prob=50 gate=none iter=5 port=16550 -> 84.33 ops/s in 11860.5 ms
+OK mode=checker prob=50 gate=none iter=6 port=16560 -> 87.02 ops/s in 11492.8 ms
+OK mode=checker prob=50 gate=none iter=7 port=16570 -> 88.84 ops/s in 11257.8 ms
+OK mode=checker prob=50 gate=none iter=8 port=16580 -> 83.06 ops/s in 12042.5 ms
+OK mode=checker prob=50 gate=none iter=9 port=16590 -> 80.06 ops/s in 12493.0 ms
+OK mode=checker prob=70 gate=none iter=0 port=16500 -> 74.74 ops/s in 13381.0 ms
+OK mode=checker prob=70 gate=none iter=1 port=16510 -> 74.40 ops/s in 13443.0 ms
+OK mode=checker prob=70 gate=none iter=2 port=16520 -> 76.11 ops/s in 13141.4 ms
+OK mode=checker prob=70 gate=none iter=3 port=16530 -> 78.08 ops/s in 12809.6 ms
+OK mode=checker prob=70 gate=none iter=4 port=16540 -> 72.00 ops/s in 13890.0 ms
+OK mode=checker prob=70 gate=none iter=5 port=16550 -> 77.34 ops/s in 12931.8 ms
+OK mode=checker prob=70 gate=none iter=6 port=16560 -> 79.43 ops/s in 12591.9 ms
+OK mode=checker prob=70 gate=none iter=7 port=16570 -> 73.57 ops/s in 13595.4 ms
+OK mode=checker prob=70 gate=none iter=8 port=16580 -> 76.36 ops/s in 13098.1 ms
+OK mode=checker prob=70 gate=none iter=9 port=16590 -> 75.90 ops/s in 13178.3 ms
+wrote 30 rows to /home/azureuser/gramine/docs/benchmarking-intermediate-p/redis_results_inter.csv
+wrote 270 rows to /home/azureuser/gramine/docs/benchmarking-intermediate-p/redis_profile_inter.csv
+[22:15:23] DONE redis, rc=0
+[22:15:23] START sqlite
+# modes=['checker'] n_txn=500 iter=10 prob_sweep=[30, 50, 70] gramine=gramine-sgx
+OK mode=checker prob=30 iter=0 -> 14.47 txn/s in 34562.8 ms
+OK mode=checker prob=30 iter=1 -> 14.84 txn/s in 33701.9 ms
+OK mode=checker prob=30 iter=2 -> 14.64 txn/s in 34144.5 ms
+OK mode=checker prob=30 iter=3 -> 14.69 txn/s in 34028.7 ms
+OK mode=checker prob=30 iter=4 -> 14.69 txn/s in 34040.3 ms
+OK mode=checker prob=30 iter=5 -> 14.53 txn/s in 34419.8 ms
+OK mode=checker prob=30 iter=6 -> 15.00 txn/s in 33322.2 ms
+OK mode=checker prob=30 iter=7 -> 14.41 txn/s in 34692.9 ms
+OK mode=checker prob=30 iter=8 -> 14.67 txn/s in 34078.3 ms
+OK mode=checker prob=30 iter=9 -> 15.04 txn/s in 33245.0 ms
+OK mode=checker prob=50 iter=0 -> 13.71 txn/s in 36463.4 ms
+OK mode=checker prob=50 iter=1 -> 13.40 txn/s in 37310.8 ms
+OK mode=checker prob=50 iter=2 -> 13.59 txn/s in 36793.2 ms
+OK mode=checker prob=50 iter=3 -> 13.74 txn/s in 36398.1 ms
+OK mode=checker prob=50 iter=4 -> 12.90 txn/s in 38765.5 ms
+OK mode=checker prob=50 iter=5 -> 13.72 txn/s in 36455.5 ms
+OK mode=checker prob=50 iter=6 -> 13.70 txn/s in 36499.8 ms
+OK mode=checker prob=50 iter=7 -> 13.94 txn/s in 35874.5 ms
+OK mode=checker prob=50 iter=8 -> 13.76 txn/s in 36335.5 ms
+OK mode=checker prob=50 iter=9 -> 14.15 txn/s in 35337.8 ms
+OK mode=checker prob=70 iter=0 -> 13.65 txn/s in 36636.2 ms
+OK mode=checker prob=70 iter=1 -> 13.08 txn/s in 38235.1 ms
+OK mode=checker prob=70 iter=2 -> 13.06 txn/s in 38273.1 ms
+OK mode=checker prob=70 iter=3 -> 12.91 txn/s in 38725.6 ms
+OK mode=checker prob=70 iter=4 -> 12.70 txn/s in 39357.4 ms
+OK mode=checker prob=70 iter=5 -> 13.13 txn/s in 38071.4 ms
+OK mode=checker prob=70 iter=6 -> 12.98 txn/s in 38506.9 ms
+OK mode=checker prob=70 iter=7 -> 13.49 txn/s in 37063.2 ms
+OK mode=checker prob=70 iter=8 -> 13.33 txn/s in 37520.0 ms
+OK mode=checker prob=70 iter=9 -> 12.96 txn/s in 38566.1 ms
+wrote 30 rows to /home/azureuser/gramine/docs/benchmarking-intermediate-p/sqlite_results_inter.csv
+wrote 270 rows to /home/azureuser/gramine/docs/benchmarking-intermediate-p/sqlite_profile_inter.csv
+[22:35:42] DONE sqlite, rc=0
+[22:35:42] ALL DONE
